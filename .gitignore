@@ -1,0 +1,28 @@
+# Ignorar carpeta .alpackages
+.alpackages
+# Ignorar carpeta de depuración offline
+.snapshots
+
+# Ignorar símbolos y ficheros generados al compilar
+*.app
+# ...excepto la carpeta siguiente
+!.appSourceCopPackages/*
+
+# Ignorar contenido de la carpeta .vscode...
+.vscode/*
+# ...excepto los siguientes archivos
+!.vscode/example.launch.json
+!.vscode/example.ruleset.json
+!.vscode/settings.json
+
+# Ignorar resultados y utilidades temporales de comparacion
+diff/
+
+# Ignorar extracciones temporales locales
+_tmp_app_extract/
+_tmp_*.zip
+
+# Locales / credenciales
+setup-dev.bat
+setup-dev.ps1
+publish/credentials.json

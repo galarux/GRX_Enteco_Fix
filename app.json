@@ -1,0 +1,39 @@
+{
+  "id": "68bf81b7-6946-4907-b775-b4d7be996c52",
+  "name": "GRX_Enteco_Fix",
+  "publisher": "Default Publisher",
+  "version": "1.0.0.0",
+  "brief": "",
+  "description": "",
+  "privacyStatement": "",
+  "EULA": "",
+  "help": "",
+  "url": "",
+  "logo": "",
+  "dependencies": [
+          {
+      "id": "0ac00709-49ed-4f75-83d5-845ee2f6269b",
+      "name": "Enteco",
+      "publisher": "Goom Spain",
+      "version": "0.26.4.201"
+    }
+  ],
+  "screenshots": [],
+  "platform": "1.0.0.0",
+  "application": "25.0.0.0",
+  "idRanges": [
+    {
+      "from": 50000,
+      "to": 60000
+    }
+  ],
+  "resourceExposurePolicy": {
+    "allowDebugging": true,
+    "allowDownloadingSource": true,
+    "includeSourceInSymbolFile": true
+  },
+  "runtime": "17.0",
+  "features": [
+    "NoImplicitWith"
+  ]
+}
