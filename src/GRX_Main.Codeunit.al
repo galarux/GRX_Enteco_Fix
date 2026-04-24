@@ -1,4 +1,4 @@
-codeunit 50018 "GRX Main"
+codeunit 50089 "GRX Main"
 {
     Subtype = Install;
 
