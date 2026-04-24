@@ -1,7 +1,7 @@
 {
   "id": "68bf81b7-6946-4907-b775-b4d7be996c52",
   "name": "GRX_Enteco_Fix",
-  "publisher": "Default Publisher",
+  "publisher": "Galarux",
   "version": "1.0.0.0",
   "brief": "",
   "description": "",
@@ -35,5 +35,6 @@
   "runtime": "13.0",
   "features": [
     "NoImplicitWith"
-  ]
+  ],
+  "target": "OnPrem"
 }
