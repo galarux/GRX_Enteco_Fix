@@ -250,7 +250,7 @@ foreach ($env in $selected) {
                 $existing = Get-NAVAppInfo -ServerInstance $instance -Name $appName -Version $appVersion -ErrorAction SilentlyContinue
 
                 $publishArgs = @{ ServerInstance = $instance; Path = $appPath; SkipVerification = $true; Scope = $scope }
-                if ($scope -eq "Dev" -or $scope -eq "Tenant") { $publishArgs.Tenant = "default" }
+                if ($scope -eq "Tenant") { $publishArgs.Tenant = "default" }
                 Publish-NAVApp @publishArgs
 
                 Sync-NAVApp -ServerInstance $instance -Name $appName -Version $appVersion -Mode $syncMode -Tenant "default"

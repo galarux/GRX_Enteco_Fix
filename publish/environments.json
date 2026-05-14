@@ -7,6 +7,6 @@
     "instance": "BC252",
     "appName": "GRX_Enteco_Fix",
     "credentialKey": "enteco_credentials",
-    "scope": "Dev"
+    "scope": "Tenant"
   }
 ]
