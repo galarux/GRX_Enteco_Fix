@@ -8,12 +8,23 @@ codeunit 50089 "GRX Main"
     end;
 
     trigger OnInstallAppPerCompany()
-    var
-        Cust: Record Customer;
     begin
-        if CompanyName() = 'Enteco_Pharma' then begin
-            Cust.Get('DOR');
-            Cust.Delete();
-        end
+        Fix_AsignarContactoCliente();
+    end;
+
+    local procedure Fix_AsignarContactoCliente()
+    var
+        ContactBusRelation: Record "Contact Business Relation";
+    begin
+        if ContactBusRelation.Get('CONT0000003092', 'CLIENTE') then
+            ContactBusRelation.Delete(true);
+
+        Clear(ContactBusRelation);
+        ContactBusRelation."Contact No." := 'CONT0000004759';
+        ContactBusRelation."Link to Table" := ContactBusRelation."Link to Table"::Customer;
+        ContactBusRelation."Business Relation Code" := 'CLIENTE';
+        ContactBusRelation."No." := '6165';
+        ContactBusRelation.Insert();
+
     end;
 }
