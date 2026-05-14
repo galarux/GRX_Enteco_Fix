@@ -232,8 +232,9 @@ foreach ($env in $selected) {
 
             $navToolPath  = $env.navAdminToolPath
             $appVersion   = [regex]::Match($appFiles[0].Name, '(\d+\.\d+\.\d+\.\d+)').Groups[1].Value
+            $scope        = if ($env.scope) { $env.scope } else { "Global" }
             Invoke-Command -Session $session -ScriptBlock {
-                param($appPath, $instance, $appName, $appVersion, $syncMode, $navToolPath)
+                param($appPath, $instance, $appName, $appVersion, $syncMode, $navToolPath, $scope)
 
                 if ($navToolPath) {
                     $navTool = $navToolPath
@@ -248,17 +249,20 @@ foreach ($env in $selected) {
 
                 $existing = Get-NAVAppInfo -ServerInstance $instance -Name $appName -Version $appVersion -ErrorAction SilentlyContinue
 
-                Publish-NAVApp -ServerInstance $instance -Path $appPath -SkipVerification
-                Sync-NAVApp    -ServerInstance $instance -Name $appName -Version $appVersion -Mode $syncMode
+                $publishArgs = @{ ServerInstance = $instance; Path = $appPath; SkipVerification = $true; Scope = $scope }
+                if ($scope -eq "Dev" -or $scope -eq "Tenant") { $publishArgs.Tenant = "default" }
+                Publish-NAVApp @publishArgs
+
+                Sync-NAVApp -ServerInstance $instance -Name $appName -Version $appVersion -Mode $syncMode -Tenant "default"
 
                 if ($existing) {
-                    Start-NAVAppDataUpgrade -ServerInstance $instance -Name $appName -Version $appVersion
+                    Start-NAVAppDataUpgrade -ServerInstance $instance -Name $appName -Version $appVersion -Tenant "default"
                 } else {
                     Install-NAVApp -ServerInstance $instance -Name $appName -Version $appVersion -Tenant "default"
                 }
 
                 Remove-Item $appPath -Force
-            } -ArgumentList $remotePath, $env.instance, $env.appName, $appVersion, $schemaSyncMode, $navToolPath
+            } -ArgumentList $remotePath, $env.instance, $env.appName, $appVersion, $schemaSyncMode, $navToolPath, $scope
         }
         finally {
             Remove-PSSession $session

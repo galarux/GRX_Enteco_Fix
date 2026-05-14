@@ -6,6 +6,7 @@
     "server": "192.168.10.11",
     "instance": "BC252",
     "appName": "GRX_Enteco_Fix",
-    "credentialKey": "enteco_credentials"
+    "credentialKey": "enteco_credentials",
+    "scope": "Dev"
   }
 ]
