@@ -5,17 +5,44 @@ report 50025 "GRX Fix"
     Caption = 'GRX Fix DOR';
     ProcessingOnly = true;
 
-    trigger OnPreReport()
-    var
+    requestpage
+    {
+        layout
+        {
+            area(Content)
+            {
+                group(Opciones)
+                {
+                    Caption = 'Opciones';
+
+                    field(SimularField; Simular)
+                    {
+                        Caption = 'Simular';
+                        ApplicationArea = All;
+                        ToolTip = 'Hace todo menos grabar: el Excel de resultado muestra lo que se cambiaría.';
+                    }
+                }
+            }
+        }
+    }
+
+    trigger OnInitReport()
     begin
-        cuGrxFix.BorraCortePersonalizado();
+        Simular := true;
     end;
 
-    trigger OnPostReport()
+    // Llama al proceso en curso; para lanzar otro se cambia la llamada y se vuelve a publicar.
+    trigger OnPreReport()
     begin
-        Message('Proceso finalizado correctamente');
+        if (UpperCase(UserId()) <> UpperCase('d.oton')) and
+           (UpperCase(UserId()) <> UpperCase('a.millan')) then
+            Error(SinPermisoErr);
+
+        cuGrxFix.RepararRecursoColaOT(Simular);
     end;
 
     var
         cuGrxFix: Codeunit "GRX Main";
+        Simular: Boolean;
+        SinPermisoErr: Label 'Uso exclusivo de Tecnología. No tiene permiso';
 }
