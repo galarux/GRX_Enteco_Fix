@@ -9,6 +9,8 @@ modificado: 2026-10-02
 decision: ENTECO DESARROLLO Recurso Finalizado Estado Cola OT
 commits:
   - "2026-10-02 7681e9f [00001] Reports 59901 y 59902: recurso finalizado, estado de cola y unidad de componentes"
+  - "2026-10-02 7a2c62b [00001] Ficha al día tras el desarrollo"
+  - "2026-10-02 42f68bb [00001] Lógica de reparación a la Codeunit 50089; fuera los reports 59901 y 59902"
 ---
 
 # Reparación de datos tras la ficha 00002 de MigracionBC: recurso finalizado, estado de cola y unidades de los componentes
