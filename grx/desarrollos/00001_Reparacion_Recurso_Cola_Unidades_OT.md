@@ -21,7 +21,7 @@ commits:
 La ficha 00002 del repo MigracionBC corrige el código de la sincronización entre las OT de Planificación y la orden de producción estándar, pero no arregla los datos que ya quedaron mal. Esta ficha lo hace con dos reports de un solo uso: uno que carga desde un Excel el recurso finalizado y el estado de cola que tiene Oracle, y otro que completa la unidad de medida de las líneas de material y de los componentes que se quedaron sin ella. Los lanza Tecnología (Daniel), primero simulando, en Enteco_Pharma y en Enteco_Manviel, y se publican con los usuarios trabajando.
 
 ## Contexto
-El porqué y la cronología están en la nota «ENTECO DESARROLLO Recurso Finalizado Estado Cola OT» de la bóveda. El código corregido está en la ficha `grx/desarrollos/00002_Recurso_Finalizado_Estado_Cola_OT.md` del repo hermano `../MigracionBC`.
+El porqué y la cronología están en la nota «ENTECO DESARROLLO Recurso Finalizado Estado Cola OT» de la bóveda. El código corregido está en la ficha `grx/desarrollos/finalizados/00002_Recurso_Finalizado_Estado_Cola_OT.md` del repo hermano `../MigracionBC`.
 
 **Requisito previo: la ficha 00002 de MigracionBC tiene que estar desplegada antes de ejecutar estos reports.** Sin ella, la siguiente modificación de cada OT en BC vuelve a dejar la orden estándar sin recurso y en «Sin asignar». Cumplido: está en producción desde el 01-10-2026 (versión 26.10.01.1 de `Enteco`).
 
@@ -121,3 +121,4 @@ En PRE (`BC25_DESARROLLO`), con la versión de `Enteco` que lleva la ficha 00002
 - 2026-10-02 Cowork: `estado` pasa de `desarrollado` (no existe) a `en pruebas`; la lista de estados válidos queda en el `CLAUDE.md`. Revisadas las desviaciones: se aceptan tal cual.
 - 2026-10-02 Cowork: cambio de diseño de Daniel (nota al principio): sin objetos nuevos; la lógica de los reports 59901 y 59902 pasa a la `Codeunit 50089` y la llama el `Report 50025`. Estado vuelve a `en desarrollo`. `CLAUDE.md` actualizado con la regla.
 - 2026-10-02 Claude Code: lógica de los reports 59901 y 59902 pasada a `RepararRecursoColaOT` y `RepararUnidadComponentes` de la `Codeunit 50089`; reports borrados; `Report 50025` básico con Simular y llamada a `RepararRecursoColaOT`. Compilado con CodeCop; pendiente probar en PRE.
+- 2026-10-02 Cowork: la ficha 00002 de MigracionBC pasa a `finalizados/`; ruta corregida en Contexto.
