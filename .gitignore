@@ -26,3 +26,6 @@ _tmp_*.zip
 setup-dev.bat
 setup-dev.ps1
 publish/credentials.json
+
+# Carpeta de paso para Excel y ficheros locales
+grx/utils/
