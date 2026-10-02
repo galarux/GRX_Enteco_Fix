@@ -3,11 +3,12 @@ id: 00001
 titulo: "Reparación de datos tras la ficha 00002 de MigracionBC: recurso finalizado, estado de cola y unidades de los componentes"
 repo: GRX_Enteco_Fix
 rama: master
-estado: propuesta
+estado: desarrollado
 creado: 2026-10-02
 modificado: 2026-10-02
 decision: ENTECO DESARROLLO Recurso Finalizado Estado Cola OT
-commits: []
+commits:
+  - "2026-10-02 7681e9f [00001] Reports 59901 y 59902: recurso finalizado, estado de cola y unidad de componentes"
 ---
 
 # Reparación de datos tras la ficha 00002 de MigracionBC: recurso finalizado, estado de cola y unidades de los componentes
@@ -96,10 +97,19 @@ En PRE (`BC25_DESARROLLO`), con la versión de `Enteco` que lleva la ficha 00002
 - No cambia nada que vea el usuario: no hay que tocar el manual.
 
 ## Desviaciones del plan
-(Claude Code) Qué se hizo distinto de lo previsto y por qué.
+- Report 59901, OT que existe solo en una de las dos tablas (la 50050 o la 5405): la ficha solo dice qué hacer si no existe en ninguna. Se escribe en la que existe y la otra sale en el Excel como `No existe en BC`.
+- Report 59901, `ESTADO_COLA` no válido: la fila de error se lista una vez, sin tabla; el recurso de esa misma fila se trata igual.
+- Report 59902, producto que no existe (código vacío o borrado en la línea): resultado `Error: producto no existe`, que la ficha no contemplaba; no se toca.
+- Report 59902: como solo revisa registros sin unidad, todas sus filas son `Cambiado` o `Error`; no hay `Ya estaba`. En una segunda ejecución el Excel sale vacío.
+- Los ficheros nuevos se llaman `GRXFixRecursoColaOT.Report.al` y `GRXFixUnidadComponentes.Report.al` (sin guion bajo) para no dar el warning AA0215 de CodeCop.
+- La dependencia de `Enteco` sigue en 26.9.2.1: los campos que se usan ya existían y no hay símbolos de la 26.10.01.1 en `.alpackages`. El requisito de tener desplegada la ficha 00002 de MigracionBC no lo garantiza la extensión.
 
 ## Resultado
-(Claude Code) Qué quedó hecho, objetos finales, cómo se probó.
+- Report 59901 «GRX Fix Recurso Cola OT» (`src/GRXFixRecursoColaOT.Report.al`) y report 59902 «GRX Fix Unidad Componentes» (`src/GRXFixUnidadComponentes.Report.al`), según el diseño: solo d.oton y a.millan, Simular activado por defecto, `Modify(false)`, Excel de resultado (Tabla, Clave, Campo, Valor anterior, Valor nuevo, Resultado) y `Message` con los totales. El nombre del Excel lleva la empresa y «Simulación» o «Ejecución».
+- Versión de la extensión 26.10.2.1. Sin tablas ni campos nuevos.
+- Compila con CodeCop sin warnings nuevos (solo el info AA0247 de namespaces que tienen todos los objetos).
+- Sin probar en PRE: faltan las pruebas de aceptación 1 a 7.
 
 ## Historial
 - 2026-10-02 Cowork: ficha creada con la consulta a Oracle (`00001_consulta_oracle.sql`) y el Excel de entrada analizados; los reports están por hacer.
+- 2026-10-02 Claude Code: commit previo de limpieza del repo (plantilla, publish/, scripts/ → tools/, grx/utils/ ignorada); reports 59901 y 59902 escritos y compilados con CodeCop; pendiente probar en PRE.
