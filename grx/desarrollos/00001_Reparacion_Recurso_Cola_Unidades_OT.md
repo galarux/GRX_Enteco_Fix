@@ -5,8 +5,8 @@ repo: GRX_Enteco_Fix
 rama: master
 estado: en pruebas
 creado: 2026-10-02
-modificado: 2026-10-02
-decision: ENTECO DESARROLLO Recurso Finalizado Estado Cola OT
+modificado: 2026-10-14
+proyecto: ENTECO Planificación Mejoras
 commits:
   - "2026-10-02 7681e9f [00001] Reports 59901 y 59902: recurso finalizado, estado de cola y unidad de componentes"
   - "2026-10-02 7a2c62b [00001] Ficha al día tras el desarrollo"
@@ -21,7 +21,7 @@ commits:
 La ficha 00002 del repo MigracionBC corrige el código de la sincronización entre las OT de Planificación y la orden de producción estándar, pero no arregla los datos que ya quedaron mal. Esta ficha lo hace con dos reports de un solo uso: uno que carga desde un Excel el recurso finalizado y el estado de cola que tiene Oracle, y otro que completa la unidad de medida de las líneas de material y de los componentes que se quedaron sin ella. Los lanza Tecnología (Daniel), primero simulando, en Enteco_Pharma y en Enteco_Manviel, y se publican con los usuarios trabajando.
 
 ## Contexto
-El porqué y la cronología están en la nota «ENTECO DESARROLLO Recurso Finalizado Estado Cola OT» de la bóveda. El código corregido está en la ficha `grx/desarrollos/finalizados/00002_Recurso_Finalizado_Estado_Cola_OT.md` del repo hermano `../MigracionBC`.
+El porqué y la cronología están en las tareas del 01-10 y 02-10-2026 del proyecto «ENTECO Planificación Mejoras» de la bóveda (antes en la nota «ENTECO DESARROLLO Recurso Finalizado Estado Cola OT», fundida en ese proyecto el 14-10-2026); lo perdurable, en «ENTECO Planificación», sección «Recurso finalizado y estado de cola». El código corregido está en la ficha `grx/desarrollos/finalizados/00002_Recurso_Finalizado_Estado_Cola_OT.md` del repo hermano `../MigracionBC`.
 
 **Requisito previo: la ficha 00002 de MigracionBC tiene que estar desplegada antes de ejecutar estos reports.** Sin ella, la siguiente modificación de cada OT en BC vuelve a dejar la orden estándar sin recurso y en «Sin asignar». Cumplido: está en producción desde el 01-10-2026 (versión 26.10.01.1 de `Enteco`).
 
@@ -122,3 +122,4 @@ En PRE (`BC25_DESARROLLO`), con la versión de `Enteco` que lleva la ficha 00002
 - 2026-10-02 Cowork: cambio de diseño de Daniel (nota al principio): sin objetos nuevos; la lógica de los reports 59901 y 59902 pasa a la `Codeunit 50089` y la llama el `Report 50025`. Estado vuelve a `en desarrollo`. `CLAUDE.md` actualizado con la regla.
 - 2026-10-02 Claude Code: lógica de los reports 59901 y 59902 pasada a `RepararRecursoColaOT` y `RepararUnidadComponentes` de la `Codeunit 50089`; reports borrados; `Report 50025` básico con Simular y llamada a `RepararRecursoColaOT`. Compilado con CodeCop; pendiente probar en PRE.
 - 2026-10-02 Cowork: la ficha 00002 de MigracionBC pasa a `finalizados/`; ruta corregida en Contexto.
+- 2026-10-14 Cowork: la cabecera pasa de `decision` a `proyecto` (ENTECO Planificación Mejoras) al fundir la nota de decisiones en el proyecto; sin cambios en el contenido. La segunda carga de recursos (lista de octubre) va en la ficha 00003, que reutiliza `RepararRecursoColaOT`.

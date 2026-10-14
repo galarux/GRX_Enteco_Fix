@@ -38,7 +38,7 @@ report 50025 "GRX Fix"
            (UpperCase(UserId()) <> UpperCase('a.millan')) then
             Error(SinPermisoErr);
 
-        cuGrxFix.RepararUnidadComponentes(Simular);
+        cuGrxFix.RepararRecursoColaOT(Simular);
     end;
 
     var

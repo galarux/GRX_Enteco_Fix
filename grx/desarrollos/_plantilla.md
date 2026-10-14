@@ -6,7 +6,7 @@ rama: master
 estado: propuesta
 creado: AAAA-MM-DD
 modificado: AAAA-MM-DD
-decision: ENTECO Nombre de la nota de decisiones en la bóveda
+proyecto: ENTECO Nombre de la nota del proyecto en 030 PROYECTOS de la bóveda
 commits: []
 ---
 
@@ -16,7 +16,7 @@ commits: []
 Qué se quiere conseguir, en lenguaje de negocio, en dos o tres frases. Quién lo usa y para qué.
 
 ## Contexto
-De qué decisión viene (nota «decision» de la bóveda, citada entre comillas angulares, sin wikilinks), cifras reales que lo justifican (de un Excel, una pantalla o el código), qué existe hoy en el repo que hay que respetar.
+De qué tarea del proyecto viene (nota «proyecto» de la bóveda, citada entre comillas angulares, sin wikilinks), cifras reales que lo justifican (de un Excel, una pantalla o el código), qué existe hoy en el repo que hay que respetar.
 
 ## Diseño
 Objetos que se crean o modifican, con IDs del rango del repo; algoritmo paso a paso; contratos con sistemas externos (SQL Server, Oracle); qué NO se toca.

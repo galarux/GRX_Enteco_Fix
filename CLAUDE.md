@@ -12,7 +12,7 @@
 
 ## Cómo se trabaja aquí
 
-- Antes de tocar código, lee entera la ficha de `grx/desarrollos/` que te indiquen y este fichero. Lo que no esté en la ficha se pregunta a Daniel. El porqué está en su nota `decision` de la bóveda (`<OneDrive>/CD_DOR/CONTENIDO/🏢TRABAJO/CLIENTES/ENTECO/020 DESARROLLOS/`).
+- Antes de tocar código, lee entera la ficha de `grx/desarrollos/` que te indiquen y este fichero. Lo que no esté en la ficha se pregunta a Daniel. El porqué está en la tarea fechada de la nota `proyecto` de la bóveda (`<OneDrive>/01_CD_DOR/CONTENIDO/🏢TRABAJO/CLIENTES/ENTECO/030 PROYECTOS/`; en fichas anteriores a octubre de 2026, nota `decision` en `020 DESARROLLOS/`).
 - Cada proceso es un procedimiento de la codeunit que recibe `Simular` (opción del report 50025, activada por defecto) y descarga un Excel de resultado al terminar. La comprobación de usuario (solo Tecnología) está en el report 50025. Nada de tablas de log. Para lanzar otro proceso se cambia la llamada del report y se vuelve a publicar.
 - Escribe directamente y sin disparar triggers (`Modify(false)`), para no resincronizar con Oracle, salvo que la ficha diga otra cosa.
 - Compila con CodeCop y sin warnings nuevos.
