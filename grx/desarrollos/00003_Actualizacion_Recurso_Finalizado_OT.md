@@ -9,6 +9,8 @@ modificado: 2026-10-14
 proyecto: ENTECO Planificación Mejoras
 commits:
   - "2026-10-14 e32b403 [00003] Report 50025 llama a RepararRecursoColaOT; versión 26.10.14.1"
+  - "2026-10-14 98d5000 [00003] Ficha: commits al día"
+  - "2026-10-14 5c35a08 [00003] Versión 26.10.14.2"
 ---
 
 # Actualización del recurso finalizado de 129 OT (Pharma y Manviel) con la lista de Oracle de octubre de 2026, reutilizando RepararRecursoColaOT
