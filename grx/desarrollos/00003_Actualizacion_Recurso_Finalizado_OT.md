@@ -67,10 +67,11 @@ Ninguna en el código. `tools/compile.ps1` no carga CodeCop ni saca el `.app` co
 
 ## Resultado
 - `Report 50025 "GRX Fix"`, `OnPreReport`: llama a `cuGrxFix.RepararRecursoColaOT(Simular)` en lugar de `RepararUnidadComponentes`. Sin cambios en la `Codeunit 50089`.
-- `app.json`: versión 26.10.14.1 (dependencia de `Enteco` sin tocar, 26.9.2.1).
+- `app.json`: versión 26.10.14.1 y, tras recompilar Daniel el mismo día, 26.10.14.2 (dependencia de `Enteco` sin tocar, 26.9.2.1).
 - Compilado con `alc` 17.0 y CodeCop: 0 errores y los mismos 6 warnings que la 26.10.2.1 (AA0215 nombres de fichero, AA0139 en `Fix_Imprimase`, AA0137 en `BorraCortePersonalizado`), ninguno nuevo.
 - Pendiente (Daniel): publicar en PRE y en producción y ejecutar con el Excel `actualizar_recurso_finalizado_OT.xlsx` según las pruebas de aceptación 1 a 6.
 
 ## Historial
 - 2026-10-14 Cowork: ficha creada con la lista de 129 OT comparada con el Excel del 02-10 (`00003_lista_ot.csv` al lado); Excel de entrada generado y entregado a Daniel.
 - 2026-10-14 Claude Code: `Report 50025` apuntado a `RepararRecursoColaOT`, versión 26.10.14.1, compilado con CodeCop sin warnings nuevos; `.app` en la raíz. Estado `en pruebas`: falta publicar y ejecutar en PRE y producción.
+- 2026-10-14 Claude Code: Excel de entrada copiado a `grx/utils/`; commiteada la versión 26.10.14.2 que Daniel subió al recompilar.
