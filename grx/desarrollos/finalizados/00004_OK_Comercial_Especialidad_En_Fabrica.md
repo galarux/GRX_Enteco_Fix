@@ -3,7 +3,7 @@ id: 00004
 titulo: "Marcar el OK Comercial de la especialidad impresa P4TZ3012001 (Enteco_Manviel), que llegó a «En Fabrica» sin él, sin cambiar su estado ni sincronizar con ORACLE"
 repo: GRX_Enteco_Fix
 rama: master
-estado: en pruebas
+estado: finalizado
 creado: 2026-10-19
 modificado: 2026-10-19
 proyecto: ENTECO Comercial Mejoras
@@ -91,3 +91,5 @@ Como en la 00003, se ha compilado llamando a `alc.exe` con `/analyzer:` CodeCop 
 ## Historial
 - 2026-10-19 Cowork: ficha creada.
 - 2026-10-19 Claude Code: `MarcarOkComercialEnFabrica` en la `Codeunit 50089`, `Report 50025` apuntado a él, versión 26.10.19.1, compilado con CodeCop sin warnings nuevos; `.app` en la raíz. Estado `en pruebas`: falta publicar y probar en PRE y producción.
+- 2026-10-19 Cowork: Daniel simula en producción (Manviel: 3 cambiados, 0 «Ya estaba») y ejecuta; el OK Comercial queda bien. Estado `desplegado`.
+- 2026-10-19 Cowork: Daniel la da por finalizada; la especialidad llegó a «En Fabrica» sin OK por un hecho puntual y no se investiga más. Movida a `finalizados/`.
