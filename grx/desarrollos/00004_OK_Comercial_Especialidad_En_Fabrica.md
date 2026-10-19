@@ -7,7 +7,8 @@ estado: en pruebas
 creado: 2026-10-19
 modificado: 2026-10-19
 proyecto: ENTECO Comercial Mejoras
-commits: []
+commits:
+  - "2026-10-19 398dab6 [00004] MarcarOkComercialEnFabrica en la Codeunit 50089; Report 50025 lo llama; versión 26.10.19.1"
 ---
 
 # Marcar el OK Comercial de la especialidad impresa P4TZ3012001 (Enteco_Manviel), que llegó a «En Fabrica» sin él, sin cambiar su estado ni sincronizar con ORACLE
