@@ -3,14 +3,15 @@ id: 00003
 titulo: "Actualización del recurso finalizado de 129 OT (Pharma y Manviel) con la lista de Oracle de octubre de 2026, reutilizando RepararRecursoColaOT"
 repo: GRX_Enteco_Fix
 rama: master
-estado: en pruebas
+estado: desplegado
 creado: 2026-10-14
-modificado: 2026-10-14
+modificado: 2026-10-19
 proyecto: ENTECO Planificación Mejoras
 commits:
   - "2026-10-14 e32b403 [00003] Report 50025 llama a RepararRecursoColaOT; versión 26.10.14.1"
   - "2026-10-14 98d5000 [00003] Ficha: commits al día"
   - "2026-10-14 5c35a08 [00003] Versión 26.10.14.2"
+  - "2026-10-14 90c94e0 [00003] Ficha: commits al día"
 ---
 
 # Actualización del recurso finalizado de 129 OT (Pharma y Manviel) con la lista de Oracle de octubre de 2026, reutilizando RepararRecursoColaOT
@@ -77,3 +78,4 @@ Ninguna en el código. `tools/compile.ps1` no carga CodeCop ni saca el `.app` co
 - 2026-10-14 Cowork: ficha creada con la lista de 129 OT comparada con el Excel del 02-10 (`00003_lista_ot.csv` al lado); Excel de entrada generado y entregado a Daniel.
 - 2026-10-14 Claude Code: `Report 50025` apuntado a `RepararRecursoColaOT`, versión 26.10.14.1, compilado con CodeCop sin warnings nuevos; `.app` en la raíz. Estado `en pruebas`: falta publicar y ejecutar en PRE y producción.
 - 2026-10-14 Claude Code: Excel de entrada copiado a `grx/utils/`; commiteada la versión 26.10.14.2 que Daniel subió al recompilar.
+- 2026-10-19 Claude Code: Daniel la da por ejecutada en producción. Estado `desplegado`. El `Report 50025` pasa a llamar a `MarcarOkComercialEnFabrica` (ficha 00004).
