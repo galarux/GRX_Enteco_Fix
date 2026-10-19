@@ -164,6 +164,76 @@ codeunit 50089 "GRX Main"
         Message(TotalesMsg, ModoTxt(), NumCambiado, NumError);
     end;
 
+    // Ficha 00004. Marca el OK Comercial de la especialidad impresa P4TZ3012001 de Enteco_Manviel, que llegó
+    // a «En Fabrica» sin él. Solo los tres campos del producto: ni estado, ni buffer, ni Oracle, ni pedido.
+    procedure MarcarOkComercialEnFabrica(Simular: Boolean)
+    var
+        Item: Record Item;
+        Usuario: Code[50];
+    begin
+        if CompanyName() <> 'Enteco_Manviel' then
+            Error(EmpresaOkComercialErr, CompanyName());
+
+        Item.Get(EspecialidadOkComercialTxt);
+        if (Item."Enteco Tipo Producto" <> 'P') or not Item."Enteco Impreso" then
+            Error(NoEsEspecialidadImpresaErr, Item."No.", Item."Enteco Tipo Producto", Item."Enteco Impreso");
+        if Item."Enteco Estado Ficha Tecnica" <> Item."Enteco Estado Ficha Tecnica"::"En Fabrica" then
+            Error(EstadoFichaTecnicaErr, Item."No.", Item."Enteco Estado Ficha Tecnica");
+
+        IniciarResultado(Simular);
+        if Item."Enteco Comercial Ok" then begin
+            AnadirResultado(TablaItemTxt, Item."No.", Item.FieldCaption("Enteco Comercial Ok"), Format(Item."Enteco Comercial Ok"), Format(Item."Enteco Comercial Ok"), YaEstabaTxt);
+            AnadirResultado(TablaItemTxt, Item."No.", Item.FieldCaption("Enteco ID Comercial Ok"), Item."Enteco ID Comercial Ok", Item."Enteco ID Comercial Ok", YaEstabaTxt);
+            AnadirResultado(TablaItemTxt, Item."No.", Item.FieldCaption("Enteco Fecha Comercial ok"), Format(Item."Enteco Fecha Comercial ok"), Format(Item."Enteco Fecha Comercial ok"), YaEstabaTxt);
+        end else begin
+            Usuario := UsuarioDelComercial(Item."Enteco Comercial");
+            AnadirResultado(TablaItemTxt, Item."No.", Item.FieldCaption("Enteco Comercial Ok"), Format(Item."Enteco Comercial Ok"), Format(true), CambiadoTxt);
+            AnadirResultado(TablaItemTxt, Item."No.", Item.FieldCaption("Enteco ID Comercial Ok"), Item."Enteco ID Comercial Ok", Usuario, CambiadoTxt);
+            AnadirResultado(TablaItemTxt, Item."No.", Item.FieldCaption("Enteco Fecha Comercial ok"), Format(Item."Enteco Fecha Comercial ok"), Format(Today()), CambiadoTxt);
+
+            // Sin triggers: el OK por el botón cambia el estado y sincroniza el producto y el pedido con Oracle.
+            if not SimularActivo then begin
+                Item."Enteco Comercial Ok" := true;
+                Item."Enteco ID Comercial Ok" := Usuario;
+                Item."Enteco Fecha Comercial ok" := Today();
+                Item.Modify(false);
+            end;
+        end;
+
+        ExportarResultado('GRX Fix OK Comercial');
+        Message(OkComercialTotalesMsg, ModoTxt(), NumCambiado, NumYaEstaba);
+    end;
+
+    // El comercial de la ficha es un vendedor; su usuario de BC es el único de User Setup que lo tiene.
+    local procedure UsuarioDelComercial(Comercial: Code[10]): Code[50]
+    var
+        UserSetup: Record "User Setup";
+        Usuarios: Text;
+    begin
+        if Comercial = '' then
+            Error(SinComercialErr, EspecialidadOkComercialTxt);
+
+        UserSetup.SetRange("Salespers./Purch. Code", Comercial);
+        case UserSetup.Count() of
+            0:
+                Error(ComercialSinUsuarioErr, Comercial);
+            1:
+                begin
+                    UserSetup.FindFirst();
+                    exit(UserSetup."User ID");
+                end;
+            else begin
+                UserSetup.FindSet();
+                repeat
+                    if Usuarios <> '' then
+                        Usuarios += ', ';
+                    Usuarios += UserSetup."User ID";
+                until UserSetup.Next() = 0;
+                Error(ComercialVariosUsuariosErr, Comercial, Usuarios);
+            end;
+        end;
+    end;
+
     local procedure RepararRecursoColaFila(Fila: Integer)
     var
         OT: Record "Enteco Production Order";
@@ -458,6 +528,15 @@ codeunit 50089 "GRX Main"
         EstadoColaNoValidoTxt: Label 'Error: estado de cola %1 no válido', Comment = '%1 = valor de la columna ESTADO_COLA';
         SinUnidadBaseTxt: Label 'Error: producto sin unidad base';
         ProductoNoExisteTxt: Label 'Error: producto no existe';
+        EmpresaOkComercialErr: Label 'Este proceso es solo para Enteco_Manviel; está en %1.', Comment = '%1 = nombre de la empresa';
+        NoEsEspecialidadImpresaErr: Label 'El producto %1 no es una especialidad impresa (Tipo Producto %2, Impreso %3).', Comment = '%1 = producto, %2 = tipo de producto, %3 = impreso';
+        EstadoFichaTecnicaErr: Label 'La especialidad %1 está en estado %2, no en En Fabrica.', Comment = '%1 = producto, %2 = estado de la ficha técnica';
+        SinComercialErr: Label 'La especialidad %1 no tiene comercial.', Comment = '%1 = producto';
+        ComercialSinUsuarioErr: Label 'Ningún usuario de Configuración usuarios tiene el comercial %1.', Comment = '%1 = código del comercial';
+        ComercialVariosUsuariosErr: Label 'Varios usuarios de Configuración usuarios tienen el comercial %1: %2.', Comment = '%1 = código del comercial, %2 = usuarios';
+        OkComercialTotalesMsg: Label '%1. Cambiado: %2. Ya estaba: %3.', Comment = '%1 = Simulación o Ejecución, %2 = cambiados, %3 = ya estaban';
+        EspecialidadOkComercialTxt: Label 'P4TZ3012001', Locked = true;
+        TablaItemTxt: Label '27 Item', Locked = true;
         TablaOTTxt: Label '50050 Enteco Production Order', Locked = true;
         TablaOrdenTxt: Label '5405 Production Order', Locked = true;
         ClaveEstructuraTxt: Label '%1 %2 / %3 / %4 / F%5 S%6', Locked = true;
