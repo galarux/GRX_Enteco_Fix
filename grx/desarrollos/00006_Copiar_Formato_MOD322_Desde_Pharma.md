@@ -3,11 +3,12 @@ id: 00006
 titulo: "Modelo 322: copiar el «Formato transferencia» MOD322 de Pharma (ya corregido, diseño de 2026) a Manviel, Extremadura y Gestión"
 repo: GRX_Enteco_Fix
 rama: master
-estado: propuesta
+estado: en pruebas
 creado: 2026-10-29
 modificado: 2026-10-29
 proyecto: ENTECO Contabilidad Mejoras
-commits: []
+commits:
+  - "2026-10-29 45dcdf2 [00006] CopiarFormatoMod322DesdePharma en la Codeunit 50089; Report 50025 lo llama; versión 26.10.29.2; fichas 00006 (nueva) y 00005 (Historial)"
 ---
 
 # Modelo 322: copiar el «Formato transferencia» MOD322 de Pharma (ya corregido, diseño de 2026) a Manviel, Extremadura y Gestión
@@ -84,10 +85,25 @@ Qué NO se toca:
 - No cambia nada que vea el usuario salvo que el fichero sale bien: no hay que tocar el manual.
 
 ## Desviaciones del plan
-(Claude Code) Qué se hizo distinto de lo previsto y por qué.
+- **Numéricas con casilla (paso 3.4).** El Diseño las deja todas con `Value` vacío y pone el `02100` de la 945 como ejemplo de numérica «sin Box», pero en Pharma la 945 tiene Box `19` (tabla de la 00005) y no hay fila de declaración con Box 19: vaciada, el report no la rellena y saldría `00000` en el tipo del 21 %. Se vacía el `Value` solo si la casilla está en la declaración `MOD322` de Pharma o en la del destino (con D1/D2 hecho), que son las que recalcula el `Report 50110`; así sigue sin viajar ningún importe de Pharma. Las numéricas con casilla que no está en ninguna declaración se copian tal cual y, si su valor no es todo ceros, salen en el Excel como «Revisar: casilla sin fila en la declaración, se copia el valor de Pharma» (la 945 con `02100` sale ahí; hay que mirar que no haya ningún importe).
+- **Origen**: además de 2180/1948/945, se comprueba que Pharma tiene exactamente una línea en la 342, 351, 447 y 448 con la longitud de la tabla; si no, error y no se toca nada.
+- **Excel**: la línea borrada sale con la clave `empresa · posición P (Nº n) descripción`, en Campo `Long., tipo, subtipo, casilla` y su `Value` solo en Valor anterior (Resultado «Borrada»), para que quepa entero; la insertada, igual con el valor en Valor nuevo (Resultado «Insertada»). Los valores de identificación salen «Se mantiene» (anterior y nuevo; en la 351, el limpio). Si en una empresa hay algún «No coincide», no se listan las líneas que se borrarían ni las que se insertarían, solo lo que no coincide, las casillas de la declaración («Sin cambiar») y las «Revisar». Cada empresa acaba con una fila «Total».
+- **«Revisar» de texto**: compara cada línea no numérica de Pharma con valor con la línea del destino que **empieza** en la misma posición (la que encuentra el proceso por posición) y tiene la misma longitud.
+- `AnadirResultado` corta a 250 caracteres la clave y los valores (límite de la celda del Excel Buffer).
+- Como en las fichas anteriores, compilado llamando a `alc.exe` con CodeCop (`tools/compile.ps1` no lo carga); el paquete está en la raíz como `Galarux_GRX_Enteco_Fix_26.10.29.2.app` (ignorado por git).
 
 ## Resultado
-(Claude Code) Qué quedó hecho, objetos finales, cómo se probó.
+- `Codeunit 50089 "GRX Main"`: procedimiento nuevo `CopiarFormatoMod322DesdePharma(Simular)` y sus locales.
+  - Empresas por NIF (`EmpresasConNif`: recorre `Company` y lee `"VAT Registration No."` de `Company Information` con `ChangeCompany`, normalizado en mayúsculas, sin espacios ni `ES`). Origen `B28296812`: si no hay exactamente una, error. Destinos `B28630796`, `B10382638`, `B82770652`: si no hay exactamente una, fila «Empresa no encontrada» con las empresas que tienen ese NIF y sigue.
+  - `ComprobarOrigenMod322`: 2180 con Box 63, sin línea en la 1948, 945 = `02100` y las cuatro líneas de identificación; si algo falla, error antes de tocar nada. Guarda las casillas de la declaración de Pharma y las de declaración + formato.
+  - Por destino, dos pasadas (`ValidarDestinoMod322`), como la 00005: identificación (342 = NIF de la empresa, 351 en mayúsculas sin acentos, 447, 448), casillas de la declaración del destino que no están en Pharma y D1/D2 (152 → 20, 150 → 18, con `CambiarCasillaDeclaracion` de la 00005). Si no hay ningún «No coincide» y no es Simular: `DeleteAll(false)` del formato `MOD322` del destino e `Insert(false)` de cada línea de Pharma con `TransferFields` (mismo Nº), con los valores de identificación del destino y el `Value` de las numéricas con casilla de declaración vacío.
+  - Excel `GRX Fix Copia MOD322 <empresa> <modo>` y `Message` con el origen y, por destino, borradas / insertadas / revisar / no coincide.
+- `Report 50025 "GRX Fix"`, `OnPreReport`: llama a `cuGrxFix.CopiarFormatoMod322DesdePharma(Simular)`. `CorregirConfiguracionMod322` sigue en la codeunit.
+- `app.json`: versión 26.10.29.2 (dependencia de `Enteco` sin tocar, 26.9.2.1).
+- Compilado con `alc` 17.0 y CodeCop: 0 errores y los mismos 6 warnings que la 26.10.29.1 (AA0215 nombres de fichero, AA0139 en `Fix_Imprimase`, AA0137 en `BorraCortePersonalizado`), ninguno nuevo. Sin tablas ni campos: no pide sincronizar esquema.
+- No se ha ejecutado contra ninguna base de datos.
+- Pendiente (Daniel): publicar en producción, Simular y revisar el Excel (ninguna empresa en «No coincide»; filas «Revisar», sobre todo las de casilla sin fila en la declaración), ejecutar y seguir las pruebas de aceptación 3 a 5. Antes de ejecutar, guardar el Excel de la simulación: es la copia de seguridad del formato antiguo. Plazo del 322 de septiembre: 30-10-2026.
 
 ## Historial
 - 2026-10-29 Cowork: ficha creada.
+- 2026-10-29 Claude Code: `CopiarFormatoMod322DesdePharma` en la `Codeunit 50089`, `Report 50025` apuntado a él, versión 26.10.29.2, compilado con CodeCop sin warnings nuevos; `.app` en la raíz. Desviación: las numéricas con casilla que no está en ninguna declaración (la 945 de tipo 21 %, Box 19) se copian con su valor en vez de vaciarse. Estado `en pruebas`: falta publicar, simular y ejecutar en producción.
