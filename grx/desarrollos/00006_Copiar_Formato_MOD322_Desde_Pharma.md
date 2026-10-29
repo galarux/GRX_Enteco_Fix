@@ -3,11 +3,13 @@ id: 00006
 titulo: "Modelo 322: copiar el «Formato transferencia» MOD322 de Pharma (ya corregido, diseño de 2026) a Manviel, Extremadura y Gestión"
 repo: GRX_Enteco_Fix
 rama: master
-estado: en pruebas
+estado: desplegado
 creado: 2026-10-29
 modificado: 2026-10-29
 proyecto: ENTECO Contabilidad Mejoras
 commits:
+  - "2026-10-29 c408997 [00006] Ficha: revisión de la simulación en producción"
+  - "2026-10-29 55c5b1b [00006] Ficha: en pruebas, desviaciones, resultado y commits al día"
   - "2026-10-29 45dcdf2 [00006] CopiarFormatoMod322DesdePharma en la Codeunit 50089; Report 50025 lo llama; versión 26.10.29.2; fichas 00006 (nueva) y 00005 (Historial)"
 ---
 
@@ -108,9 +110,11 @@ Qué NO se toca:
   - «Revisar» de la **460 es un falso aviso**: «Revisar» compara por posición y entre los dos diseños las líneas de identificación se han movido (la 460 antigua es la prorrata especial, Nº 28; la de Pharma es el criterio de caja, Nº 27). Comparadas por `Nº`, Nº 25 a 28 tienen el mismo valor en las cuatro empresas.
   - «Revisar» de la 7, 11, 431 y 435 (ejercicio y periodo, Nº 4, 5, 20 y 21): los pone el `Report 50110` al generar. 945 `02100` y 2467 `10000`: son los mismos valores fijos que tenía el formato antiguo (707 y 2082).
   - **Lo que «Revisar» no ve** (por `Nº`, no por posición): Gestión tenía el epígrafe IAE principal (Nº 152) `8497` y la copia le pone el `474` de Pharma; Extremadura y Gestión tenían Nº 109 (exonerado del 390) `1` y la copia pone `2`; Manviel tenía Nº 107 (volumen de operaciones) `2` y la copia pone `1`. Son datos de la página 3 y de diciembre, que el `Report 50110` solo emite en el último periodo: no afectan al 322 de septiembre. Entran en los valores de diciembre pendientes de Después; el Nº 152 de Gestión se puede corregir a mano tras ejecutar.
-- Pendiente (Daniel): publicar en producción, Simular y revisar el Excel (ninguna empresa en «No coincide»; filas «Revisar», sobre todo las de casilla sin fila en la declaración), ejecutar y seguir las pruebas de aceptación 3 a 5. Antes de ejecutar, guardar el Excel de la simulación: es la copia de seguridad del formato antiguo. Plazo del 322 de septiembre: 30-10-2026.
+- **Ejecutado en producción el 29-10** desde Enteco_Pharma (Excel `GRX Fix Copia MOD322 Enteco_Pharma Ejecución.xlsx`, 19:15): idéntico celda a celda a la simulación; en Manviel, Extremadura y Gestión, 254 líneas borradas, 247 insertadas, D1/D2 cambiadas y 0 «No coincide». El Excel de la simulación (o el de la ejecución, que es igual) es la copia de seguridad del formato antiguo.
+- Pendiente: pruebas de aceptación 3 a 5 (comprobar el formato en BC; Paula genera el 322 de septiembre de las tres empresas, se comparan los importes con los `EM_`, `EE_` y `EG_MOD322 (21).txt` y los valida en la sede). Corregir a mano el epígrafe IAE de Gestión (Nº 152, `474` → `8497`) antes de diciembre. Plazo del 322 de septiembre: 30-10-2026.
 
 ## Historial
 - 2026-10-29 Cowork: ficha creada.
 - 2026-10-29 Claude Code: `CopiarFormatoMod322DesdePharma` en la `Codeunit 50089`, `Report 50025` apuntado a él, versión 26.10.29.2, compilado con CodeCop sin warnings nuevos; `.app` en la raíz. Desviación: las numéricas con casilla que no está en ninguna declaración (la 945 de tipo 21 %, Box 19) se copian con su valor en vez de vaciarse. Estado `en pruebas`: falta publicar, simular y ejecutar en producción.
 - 2026-10-29 Claude Code: revisado el Excel de la simulación en producción: 0 «No coincide» en las tres empresas, todas las casillas con importe tienen destino; el «Revisar» de la 460 es un falso aviso (las líneas se movieron entre diseños). Por `Nº` cambian datos de diciembre (Nº 107, 109 y el epígrafe IAE Nº 152 de Gestión, `8497` → `474`), que no salen en septiembre. Se puede ejecutar.
+- 2026-10-29 Claude Code: Daniel lo ejecuta en producción desde Pharma; el Excel de ejecución es idéntico a la simulación (254 borradas, 247 insertadas y D1/D2 en cada empresa, 0 «No coincide»). Estado `desplegado`: faltan las pruebas de aceptación 3 a 5 (ficheros de Paula y validación en la sede).
