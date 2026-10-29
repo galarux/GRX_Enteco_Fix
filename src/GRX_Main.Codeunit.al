@@ -234,6 +234,308 @@ codeunit 50089 "GRX Main"
         end;
     end;
 
+    // Ficha 00005. Pasa la configuración MOD322 (declaración de IVA y «Formato transferencia») de
+    // Pharma, Manviel y Extremadura al diseño de 2026. Por empresa, todo o nada: si una sola línea no
+    // está ni en el estado de origen ni en el de destino, no graba nada en esa empresa.
+    procedure CorregirConfiguracionMod322(Simular: Boolean)
+    var
+        ResumenPharma: Text;
+        ResumenManviel: Text;
+        ResumenExtremadura: Text;
+    begin
+        IniciarResultado(Simular);
+        ResumenPharma := CorregirMod322Empresa('Enteco_Pharma');
+        ResumenManviel := CorregirMod322Empresa('Enteco_Manviel');
+        ResumenExtremadura := CorregirMod322Empresa('Enteco_Extremadura');
+        ExportarResultado('GRX Fix MOD322');
+        Message(Mod322TotalesMsg, ModoTxt(), ResumenPharma, ResumenManviel, ResumenExtremadura);
+    end;
+
+    local procedure CorregirMod322Empresa(Empresa: Text[30]): Text
+    var
+        Company: Record Company;
+    begin
+        if not Company.Get(Empresa) then begin
+            AnadirResultado('', Empresa, '', '', '', EmpresaNoExisteTxt);
+            exit(StrSubstNo(EmpresaNoExisteMod322Msg, Empresa));
+        end;
+        EmpresaActual := Empresa;
+
+        // Primera pasada: solo cuenta las líneas que no coinciden. Segunda: informa y, si no hay
+        // ninguna, graba.
+        InformarMod322 := false;
+        NumNoCoincide := 0;
+        AplicarCambiosMod322();
+
+        InformarMod322 := true;
+        EmpresaCoincide := NumNoCoincide = 0;
+        NumCambiadoMod322 := 0;
+        NumYaEstabaMod322 := 0;
+        NumNoCoincide := 0;
+        AplicarCambiosMod322();
+
+        exit(StrSubstNo(EmpresaMod322Msg, Empresa, NumCambiadoMod322, NumYaEstabaMod322, NumNoCoincide));
+    end;
+
+    local procedure AplicarCambiosMod322()
+    begin
+        // Declaración: las filas del 21 % pasan de [150]/[152] a [18]/[20].
+        CambiarCasillaDeclaracion('152', '20');
+        CambiarCasillaDeclaracion('150', '18');
+
+        // Formato transferencia, por posición: el Nº de línea puede variar de una empresa a otra.
+        CambiarCasillaFormato(733, '150', '');
+        CambiarCasillaFormato(755, '152', '');
+        PonerValorFormato(828, '00000');
+        PonerValorFormato(945, '02100');
+        ComprobarCasillaFormato(928, '18');
+        ComprobarCasillaFormato(950, '20');
+        CambiarCasillaFormato(2180, '65', '63');
+        CambiarCasillaFormato(2299, '70', '63');
+        BorrarLineaFormato(1948);
+        MoverLineaFormato(2067, 2452);
+        MoverLineaFormato(2081, 2466);
+    end;
+
+    local procedure CambiarCasillaDeclaracion(BoxOrigen: Code[5]; BoxDestino: Code[5])
+    var
+        VATStatementLine: Record "VAT Statement Line";
+        NumOrigen: Integer;
+        NumDestino: Integer;
+    begin
+        VATStatementLine.ChangeCompany(EmpresaActual);
+        VATStatementLine.SetRange("Statement Name", Mod322Txt);
+        VATStatementLine.SetRange(Box, BoxDestino);
+        NumDestino := VATStatementLine.Count();
+        VATStatementLine.SetRange(Box, BoxOrigen);
+        NumOrigen := VATStatementLine.Count();
+
+        if (NumOrigen = 1) and (NumDestino = 0) then begin
+            VATStatementLine.FindFirst();
+            if AnotarACambiar(TablaDeclaracionTxt, ClaveDeclaracion(VATStatementLine), VATStatementLine.FieldCaption(Box), BoxOrigen, BoxDestino) then begin
+                VATStatementLine.Box := BoxDestino;
+                VATStatementLine.Modify(false);
+            end;
+        end else
+            if (NumOrigen = 0) and (NumDestino = 1) then begin
+                VATStatementLine.SetRange(Box, BoxDestino);
+                VATStatementLine.FindFirst();
+                AnotarYaEstaba(TablaDeclaracionTxt, ClaveDeclaracion(VATStatementLine), VATStatementLine.FieldCaption(Box), BoxDestino, BoxDestino);
+            end else
+                AnotarNoCoincide(TablaDeclaracionTxt, StrSubstNo(ClaveCasillasTxt, EmpresaActual, BoxOrigen, BoxDestino), VATStatementLine.FieldCaption(Box),
+                    StrSubstNo(FilasCasillasTxt, BoxOrigen, NumOrigen, BoxDestino, NumDestino), BoxDestino);
+    end;
+
+    // Con casilla, el Value lo pone el Report 50110 al generar el fichero; sin casilla tiene que
+    // quedar vacío para que la posición salga a ceros.
+    local procedure CambiarCasillaFormato(Posicion: Integer; BoxOrigen: Code[5]; BoxDestino: Code[5])
+    var
+        Formato: Record "AEAT Transference Format";
+        NumLineas: Integer;
+    begin
+        NumLineas := LineaFormato(Formato, Posicion);
+        if (NumLineas = 1) and EsNumerica(Formato, 17) then begin
+            if (Formato.Box = BoxDestino) and ((BoxDestino <> '') or (Formato.Value = '')) then begin
+                AnotarYaEstaba(TablaFormatoTxt, ClaveFormato(Formato), CampoCasillaValor(Formato),
+                    CasillaValor(Formato.Box, Formato.Value), CasillaValor(Formato.Box, Formato.Value));
+                exit;
+            end;
+            if Formato.Box in [BoxOrigen, BoxDestino] then begin
+                if AnotarACambiar(TablaFormatoTxt, ClaveFormato(Formato), CampoCasillaValor(Formato),
+                    CasillaValor(Formato.Box, Formato.Value), CasillaValor(BoxDestino, ''))
+                then begin
+                    Formato.Box := BoxDestino;
+                    Formato.Value := '';
+                    Formato.Modify(false);
+                end;
+                exit;
+            end;
+        end;
+        AnotarNoCoincide(TablaFormatoTxt, ClavePosicion(Posicion), CampoCasillaValor(Formato),
+            EstadoPosicion(Formato, NumLineas), CasillaValor(BoxDestino, ''));
+    end;
+
+    local procedure PonerValorFormato(Posicion: Integer; Valor: Text[250])
+    var
+        Formato: Record "AEAT Transference Format";
+        NumLineas: Integer;
+    begin
+        NumLineas := LineaFormato(Formato, Posicion);
+        if (NumLineas = 1) and EsNumerica(Formato, 5) then begin
+            if Formato.Value = Valor then
+                AnotarYaEstaba(TablaFormatoTxt, ClaveFormato(Formato), Formato.FieldCaption(Value), Formato.Value, Valor)
+            else
+                if AnotarACambiar(TablaFormatoTxt, ClaveFormato(Formato), Formato.FieldCaption(Value), Formato.Value, Valor) then begin
+                    Formato.Value := Valor;
+                    Formato.Modify(false);
+                end;
+            exit;
+        end;
+        AnotarNoCoincide(TablaFormatoTxt, ClavePosicion(Posicion), Formato.FieldCaption(Value), EstadoPosicion(Formato, NumLineas), Valor);
+    end;
+
+    local procedure ComprobarCasillaFormato(Posicion: Integer; Box: Code[5])
+    var
+        Formato: Record "AEAT Transference Format";
+        NumLineas: Integer;
+    begin
+        NumLineas := LineaFormato(Formato, Posicion);
+        if (NumLineas = 1) and EsNumerica(Formato, 17) and (Formato.Box = Box) then
+            AnotarYaEstaba(TablaFormatoTxt, ClaveFormato(Formato), Formato.FieldCaption(Box), Formato.Box, Box)
+        else
+            AnotarNoCoincide(TablaFormatoTxt, ClavePosicion(Posicion), Formato.FieldCaption(Box), EstadoPosicion(Formato, NumLineas), Box);
+    end;
+
+    local procedure BorrarLineaFormato(Posicion: Integer)
+    var
+        Formato: Record "AEAT Transference Format";
+        NumLineas: Integer;
+    begin
+        NumLineas := LineaFormato(Formato, Posicion);
+        if NumLineas = 0 then
+            AnotarYaEstaba(TablaFormatoTxt, ClavePosicion(Posicion), LineaTxt, SinLineaTxt, SinLineaTxt)
+        else
+            if (NumLineas = 1) and EsNumerica(Formato, 17) then begin
+                if AnotarACambiar(TablaFormatoTxt, ClaveFormato(Formato), LineaTxt, DescribirFormato(Formato), BorradaTxt) then
+                    Formato.Delete(false);
+            end else
+                AnotarNoCoincide(TablaFormatoTxt, ClavePosicion(Posicion), LineaTxt, EstadoPosicion(Formato, NumLineas), SinLineaTxt);
+    end;
+
+    local procedure MoverLineaFormato(Origen: Integer; Destino: Integer)
+    var
+        Formato: Record "AEAT Transference Format";
+        FormatoDestino: Record "AEAT Transference Format";
+        FormatoOcupa: Record "AEAT Transference Format";
+        NumOrigen: Integer;
+        NumDestino: Integer;
+        EstadoDestino: Text;
+    begin
+        NumOrigen := LineaFormato(Formato, Origen);
+        NumDestino := LineaFormato(FormatoDestino, Destino);
+
+        if (NumOrigen = 0) and (NumDestino = 1) and (FormatoDestino.Length = 1) then begin
+            AnotarYaEstaba(TablaFormatoTxt, ClaveFormato(FormatoDestino), FormatoDestino.FieldCaption(Position), Format(Origen), Format(Destino));
+            exit;
+        end;
+
+        if PosicionOcupada(Destino, FormatoOcupa) then
+            EstadoDestino := StrSubstNo(OcupadaTxt, FormatoOcupa.Position, FormatoOcupa."No.", FormatoOcupa.Length)
+        else
+            if (NumOrigen = 1) and (Formato.Length = 1) then begin
+                if AnotarACambiar(TablaFormatoTxt, ClaveFormato(Formato), Formato.FieldCaption(Position), Format(Origen), Format(Destino)) then begin
+                    Formato.Position := Destino;
+                    Formato.Modify(false);
+                end;
+                exit;
+            end else
+                EstadoDestino := SinLineaTxt;
+
+        AnotarNoCoincide(TablaFormatoTxt, ClavePosicion(Origen), Formato.FieldCaption(Position),
+            StrSubstNo(EstadoMoverTxt, Origen, EstadoPosicion(Formato, NumOrigen), Destino, EstadoDestino), Format(Destino));
+    end;
+
+    // Devuelve cuántas líneas de MOD322 empiezan en la posición y, si es una, la deja en Formato.
+    local procedure LineaFormato(var Formato: Record "AEAT Transference Format"; Posicion: Integer) NumLineas: Integer
+    begin
+        Formato.ChangeCompany(EmpresaActual);
+        Formato.SetRange("VAT Statement Name", Mod322Txt);
+        Formato.SetRange(Position, Posicion);
+        NumLineas := Formato.Count();
+        if NumLineas = 1 then
+            Formato.FindFirst();
+    end;
+
+    local procedure PosicionOcupada(Posicion: Integer; var FormatoOcupa: Record "AEAT Transference Format"): Boolean
+    begin
+        FormatoOcupa.ChangeCompany(EmpresaActual);
+        FormatoOcupa.SetRange("VAT Statement Name", Mod322Txt);
+        FormatoOcupa.SetFilter(Position, '<=%1', Posicion);
+        if FormatoOcupa.FindSet() then
+            repeat
+                if FormatoOcupa.Position + FormatoOcupa.Length > Posicion then
+                    exit(true);
+            until FormatoOcupa.Next() = 0;
+        exit(false);
+    end;
+
+    local procedure EsNumerica(Formato: Record "AEAT Transference Format"; Longitud: Integer): Boolean
+    begin
+        exit((Formato.Length = Longitud) and (Formato.Type = Formato.Type::Numerical));
+    end;
+
+    local procedure EstadoPosicion(Formato: Record "AEAT Transference Format"; NumLineas: Integer): Text
+    begin
+        case NumLineas of
+            0:
+                exit(SinLineaTxt);
+            1:
+                exit(DescribirFormato(Formato));
+            else
+                exit(StrSubstNo(VariasLineasTxt, NumLineas));
+        end;
+    end;
+
+    local procedure DescribirFormato(Formato: Record "AEAT Transference Format"): Text
+    begin
+        exit(StrSubstNo(DescripcionFormatoTxt, Formato.Length, Formato.Type, Formato.Box, Formato.Value));
+    end;
+
+    local procedure CampoCasillaValor(Formato: Record "AEAT Transference Format"): Text
+    begin
+        exit(StrSubstNo(DosValoresTxt, Formato.FieldCaption(Box), Formato.FieldCaption(Value)));
+    end;
+
+    local procedure CasillaValor(Box: Code[5]; Valor: Text): Text
+    begin
+        exit(StrSubstNo(DosValoresTxt, Box, Valor));
+    end;
+
+    local procedure ClaveDeclaracion(VATStatementLine: Record "VAT Statement Line"): Text
+    begin
+        exit(StrSubstNo(ClaveDeclaracionTxt, EmpresaActual, VATStatementLine."Line No.", VATStatementLine.Description));
+    end;
+
+    local procedure ClaveFormato(Formato: Record "AEAT Transference Format"): Text
+    begin
+        exit(StrSubstNo(ClaveFormatoTxt, EmpresaActual, Formato.Position, Formato."No.", Formato.Description));
+    end;
+
+    local procedure ClavePosicion(Posicion: Integer): Text
+    begin
+        exit(StrSubstNo(ClavePosicionTxt, EmpresaActual, Posicion));
+    end;
+
+    // Devuelve si hay que grabar el cambio: solo en la segunda pasada, sin Simular y si en la
+    // empresa no hay ninguna línea que no coincida.
+    local procedure AnotarACambiar(Tabla: Text; Clave: Text; Campo: Text; ValorAnterior: Text; ValorNuevo: Text): Boolean
+    begin
+        if not InformarMod322 then
+            exit(false);
+        if not EmpresaCoincide then begin
+            AnadirResultado(Tabla, Clave, Campo, ValorAnterior, ValorNuevo, SinCambiarTxt);
+            exit(false);
+        end;
+        NumCambiadoMod322 += 1;
+        AnadirResultado(Tabla, Clave, Campo, ValorAnterior, ValorNuevo, CambiadoTxt);
+        exit(not SimularActivo);
+    end;
+
+    local procedure AnotarYaEstaba(Tabla: Text; Clave: Text; Campo: Text; ValorAnterior: Text; ValorNuevo: Text)
+    begin
+        if not InformarMod322 then
+            exit;
+        NumYaEstabaMod322 += 1;
+        AnadirResultado(Tabla, Clave, Campo, ValorAnterior, ValorNuevo, YaEstabaTxt);
+    end;
+
+    local procedure AnotarNoCoincide(Tabla: Text; Clave: Text; Campo: Text; ValorAnterior: Text; ValorNuevo: Text)
+    begin
+        NumNoCoincide += 1;
+        if InformarMod322 then
+            AnadirResultado(Tabla, Clave, Campo, ValorAnterior, ValorNuevo, NoCoincideTxt);
+    end;
+
     local procedure RepararRecursoColaFila(Fila: Integer)
     var
         OT: Record "Enteco Production Order";
@@ -515,6 +817,12 @@ codeunit 50089 "GRX Main"
         NumYaEstaba: Integer;
         NumNoExiste: Integer;
         NumError: Integer;
+        EmpresaActual: Text[30];
+        InformarMod322: Boolean;
+        EmpresaCoincide: Boolean;
+        NumCambiadoMod322: Integer;
+        NumYaEstabaMod322: Integer;
+        NumNoCoincide: Integer;
         EmpresaDesconocidaErr: Label 'Empresa %1 desconocida.', Comment = '%1 = nombre de la empresa';
         FilasTotalesMsg: Label '%1. Filas tratadas: %2. Cambiado: %3. Ya estaba: %4. No existe en BC: %5. Error: %6.', Comment = '%1 = Simulación o Ejecución, %2 = filas tratadas, %3 = cambiados, %4 = ya estaban, %5 = no existen en BC, %6 = errores';
         TotalesMsg: Label '%1. Cambiado: %2. Error: %3.', Comment = '%1 = Simulación o Ejecución, %2 = cambiados, %3 = errores';
@@ -535,6 +843,28 @@ codeunit 50089 "GRX Main"
         ComercialSinUsuarioErr: Label 'Ningún usuario de Configuración usuarios tiene el comercial %1.', Comment = '%1 = código del comercial';
         ComercialVariosUsuariosErr: Label 'Varios usuarios de Configuración usuarios tienen el comercial %1: %2.', Comment = '%1 = código del comercial, %2 = usuarios';
         OkComercialTotalesMsg: Label '%1. Cambiado: %2. Ya estaba: %3.', Comment = '%1 = Simulación o Ejecución, %2 = cambiados, %3 = ya estaban';
+        Mod322TotalesMsg: Label '%1.\%2\%3\%4', Comment = '%1 = Simulación o Ejecución, %2 = resumen de Pharma, %3 = resumen de Manviel, %4 = resumen de Extremadura';
+        EmpresaMod322Msg: Label '%1: cambiados %2, ya estaba %3, no coincide %4.', Comment = '%1 = empresa, %2 = cambiados, %3 = ya estaban, %4 = no coinciden';
+        EmpresaNoExisteMod322Msg: Label '%1: la empresa no existe.', Comment = '%1 = empresa';
+        EmpresaNoExisteTxt: Label 'Empresa no existe';
+        NoCoincideTxt: Label 'No coincide';
+        SinCambiarTxt: Label 'Sin cambiar: hay líneas que no coinciden en la empresa';
+        LineaTxt: Label 'Línea';
+        SinLineaTxt: Label 'Sin línea';
+        BorradaTxt: Label 'Borrada';
+        VariasLineasTxt: Label '%1 líneas', Comment = '%1 = número de líneas';
+        OcupadaTxt: Label 'ocupada por la línea de la posición %1 (Nº %2, long. %3)', Comment = '%1 = posición, %2 = Nº de línea, %3 = longitud';
+        EstadoMoverTxt: Label '%1: %2; %3: %4', Comment = '%1 = posición de origen, %2 = su estado, %3 = posición de destino, %4 = su estado';
+        DescripcionFormatoTxt: Label 'Long. %1, tipo %2, casilla %3, valor %4', Comment = '%1 = longitud, %2 = tipo, %3 = casilla, %4 = valor';
+        FilasCasillasTxt: Label 'Casilla %1: %2 filas; casilla %3: %4 filas', Comment = '%1 = casilla de origen, %2 = filas, %3 = casilla de destino, %4 = filas';
+        ClaveDeclaracionTxt: Label '%1 · Nº línea %2 %3', Comment = '%1 = empresa, %2 = Nº de línea, %3 = descripción';
+        ClaveFormatoTxt: Label '%1 · posición %2 (Nº %3) %4', Comment = '%1 = empresa, %2 = posición, %3 = Nº de línea, %4 = descripción';
+        ClavePosicionTxt: Label '%1 · posición %2', Comment = '%1 = empresa, %2 = posición';
+        ClaveCasillasTxt: Label '%1 · casilla %2 → %3', Comment = '%1 = empresa, %2 = casilla de origen, %3 = casilla de destino';
+        DosValoresTxt: Label '%1 / %2', Locked = true;
+        Mod322Txt: Label 'MOD322', Locked = true;
+        TablaDeclaracionTxt: Label '256 VAT Statement Line', Locked = true;
+        TablaFormatoTxt: Label '10705 AEAT Transference Format', Locked = true;
         EspecialidadOkComercialTxt: Label 'P4TZ3012001', Locked = true;
         TablaItemTxt: Label '27 Item', Locked = true;
         TablaOTTxt: Label '50050 Enteco Production Order', Locked = true;
