@@ -3,11 +3,12 @@ id: 00005
 titulo: "Modelo 322: corregir la configuración MOD322 (declaración de IVA y «Formato transferencia») al diseño de 2026 en Pharma, Manviel y Extremadura"
 repo: GRX_Enteco_Fix
 rama: master
-estado: propuesta
+estado: en pruebas
 creado: 2026-10-29
 modificado: 2026-10-29
 proyecto: ENTECO Contabilidad Mejoras
-commits: []
+commits:
+  - "2026-10-29 8197781 [00005] CorregirConfiguracionMod322 en la Codeunit 50089; Report 50025 lo llama; versión 26.10.29.1"
 ---
 
 # Modelo 322: corregir la configuración MOD322 (declaración de IVA y «Formato transferencia») al diseño de 2026 en Pharma, Manviel y Extremadura
@@ -117,10 +118,28 @@ Qué NO se toca:
 - No cambia nada que vea el usuario salvo que el fichero sale bien: no hay que tocar el manual.
 
 ## Desviaciones del plan
-(Claude Code) Qué se hizo distinto de lo previsto y por qué.
+- El «Formato transferencia» (`AEAT Transference Format`) es la tabla **10705** en la Base Application 25.6 española; la 10704 es `Sales/Purch. Book VAT Buffer`. El código usa la tabla por nombre, así que no cambia nada; en el Excel sale como `10705 AEAT Transference Format`.
+- F1/F2 (733 y 755): con la casilla ya vacía pero un `Value` relleno no salen «No coincide» sino «Cambiado» (se vacía el `Value`), porque una línea numérica sin casilla imprime su `Value` y la posición no saldría a ceros. Solo es «Ya estaba» con casilla y valor vacíos.
+- F7/F8 (2180 y 2299): con casilla 63 es «Ya estaba» tenga el `Value` que tenga, porque el `Report 50110` lo rellena al generar el fichero; si no, la repetición de la prueba 6 daría «No coincide».
+- F5/F6 correctas salen como «Ya estaba» (no hay un cuarto resultado «Comprobado»): los contadores por empresa son los tres de la ficha.
+- En el Excel, la columna Resultado lleva «Cambiado» tanto al simular como al ejecutar, como los procesos anteriores (el nombre del fichero y el `Message` dicen Simulación o Ejecución). En una empresa con algún «No coincide», los cambios que no se graban salen como «Sin cambiar: hay líneas que no coinciden en la empresa».
+- F9 (1948) solo comprueba longitud 17 y tipo numérico, como dice el punto 4 del Diseño; no exige casilla 63.
+
+Como en las fichas anteriores, se ha compilado llamando a `alc.exe` con `/analyzer:` CodeCop (`tools/compile.ps1` no lo carga) y el paquete está en la raíz como `Galarux_GRX_Enteco_Fix_26.10.29.1.app` (ignorado por git).
 
 ## Resultado
-(Claude Code) Qué quedó hecho, objetos finales, cómo se probó.
+- `Codeunit 50089 "GRX Main"`: procedimiento nuevo `CorregirConfiguracionMod322(Simular)` y sus locales.
+  - Recorre `Enteco_Pharma`, `Enteco_Manviel` y `Enteco_Extremadura` (`Company.Get` y `ChangeCompany`); si una no existe, fila «Empresa no existe».
+  - Por empresa hace dos pasadas por la misma lista de cambios (`AplicarCambiosMod322`): la primera solo cuenta los «No coincide»; la segunda escribe las filas del Excel y, si no hubo ninguno y no es Simular, graba con `Modify(false)` / `Delete(false)`.
+  - Declaración (`CambiarCasillaDeclaracion`, por `Box`, cualquier plantilla de `MOD322`): D1 152 → 20, D2 150 → 18.
+  - Formato (por `Position`, exactamente una línea): `CambiarCasillaFormato` (F1 733, F2 755, F7 2180, F8 2299), `PonerValorFormato` (F3 828 `00000`, F4 945 `02100`), `ComprobarCasillaFormato` (F5 928/18, F6 950/20), `BorrarLineaFormato` (F9 1948) y `MoverLineaFormato` (F10 2067 → 2452, F11 2081 → 2466, con la comprobación de que ninguna línea ocupa el destino).
+  - Excel `GRX Fix MOD322 <empresa> <modo>` con Tabla, Clave (`empresa · posición NNNN (Nº n) descripción` o `empresa · Nº línea n descripción`), Campo, Valor anterior, Valor nuevo y Resultado; en los «No coincide», los valores actuales de la línea (longitud, tipo, casilla y valor, o cuántas líneas hay). `Message` con cambiados / ya estaba / no coincide por empresa.
+- `Report 50025 "GRX Fix"`, `OnPreReport`: llama a `cuGrxFix.CorregirConfiguracionMod322(Simular)`. `MarcarOkComercialEnFabrica` sigue en la codeunit.
+- `app.json`: versión 26.10.29.1 (dependencia de `Enteco` sin tocar, 26.9.2.1).
+- Compilado con `alc` 17.0 y CodeCop: 0 errores y los mismos 6 warnings que la 26.10.19.1 (AA0215 nombres de fichero, AA0139 en `Fix_Imprimase`, AA0137 en `BorraCortePersonalizado`), ninguno nuevo. Sin tablas ni campos: no pide sincronizar esquema.
+- Repasado sobre el código con la configuración de Pharma del Contexto: 11 «Cambiado» y 2 «Ya estaba» (caso 1); una segunda pasada da todo «Ya estaba» (caso 2). No se ha ejecutado contra ninguna base de datos.
+- Pendiente (Daniel): publicar en producción y seguir las pruebas de aceptación 2 a 6. Plazo del 322 de septiembre: 30-10-2026.
 
 ## Historial
 - 2026-10-29 Cowork: ficha creada.
+- 2026-10-29 Claude Code: `CorregirConfiguracionMod322` en la `Codeunit 50089`, `Report 50025` apuntado a él, versión 26.10.29.1, compilado con CodeCop sin warnings nuevos; `.app` en la raíz. Estado `en pruebas`: falta publicar, simular y ejecutar en producción.
