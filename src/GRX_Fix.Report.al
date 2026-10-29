@@ -38,7 +38,7 @@ report 50025 "GRX Fix"
            (UpperCase(UserId()) <> UpperCase('a.millan')) then
             Error(SinPermisoErr);
 
-        cuGrxFix.CorregirConfiguracionMod322(Simular);
+        cuGrxFix.CopiarFormatoMod322DesdePharma(Simular);
     end;
 
     var

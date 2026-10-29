@@ -536,6 +536,341 @@ codeunit 50089 "GRX Main"
             AnadirResultado(Tabla, Clave, Campo, ValorAnterior, ValorNuevo, NoCoincideTxt);
     end;
 
+    // Ficha 00006. Copia el «Formato transferencia» MOD322 de Pharma (diseño de 2026, corregido con la
+    // 00005) a Manviel, Extremadura y Gestión, con el mismo Nº de línea porque el Report 50110 busca
+    // líneas por Nº, y deja en cada una sus datos de identificación. Las empresas se buscan por NIF.
+    // Por empresa, todo o nada: si algo no coincide, esa empresa no se toca y las demás siguen.
+    procedure CopiarFormatoMod322DesdePharma(Simular: Boolean)
+    var
+        Encontradas: Text;
+        NumEmpresas: Integer;
+        ResumenManviel: Text;
+        ResumenExtremadura: Text;
+        ResumenGestion: Text;
+    begin
+        NumEmpresas := EmpresasConNif(NifPharmaTxt, EmpresaOrigen, Encontradas);
+        if NumEmpresas <> 1 then
+            Error(OrigenEmpresaErr, NifPharmaTxt, NumEmpresas, Encontradas);
+        ComprobarOrigenMod322();
+
+        IniciarResultado(Simular);
+        ResumenManviel := CopiarMod322AEmpresa(NifManvielTxt);
+        ResumenExtremadura := CopiarMod322AEmpresa(NifExtremaduraTxt);
+        ResumenGestion := CopiarMod322AEmpresa(NifGestionTxt);
+        ExportarResultado('GRX Fix Copia MOD322');
+        Message(CopiaMod322TotalesMsg, ModoTxt(), EmpresaOrigen, ResumenManviel, ResumenExtremadura, ResumenGestion);
+    end;
+
+    // Devuelve cuántas empresas tienen el NIF en Información de empresa; si es una, la deja en Empresa.
+    local procedure EmpresasConNif(Nif: Text; var Empresa: Text[30]; var Encontradas: Text) NumEmpresas: Integer
+    var
+        Company: Record Company;
+        CompanyInformation: Record "Company Information";
+    begin
+        Empresa := '';
+        Encontradas := '';
+        if Company.FindSet() then
+            repeat
+                CompanyInformation.ChangeCompany(Company.Name);
+                CompanyInformation.SetLoadFields("VAT Registration No.");
+                if CompanyInformation.Get() then
+                    if NormalizarNif(CompanyInformation."VAT Registration No.") = Nif then begin
+                        NumEmpresas += 1;
+                        Empresa := Company.Name;
+                        if Encontradas <> '' then
+                            Encontradas += ', ';
+                        Encontradas += Company.Name;
+                    end;
+            until Company.Next() = 0;
+    end;
+
+    local procedure NormalizarNif(Nif: Text): Text
+    begin
+        Nif := DelChr(UpperCase(Nif), '=', ' ');
+        if Nif.StartsWith('ES') then
+            Nif := CopyStr(Nif, 3);
+        exit(Nif);
+    end;
+
+    // La copia solo vale si Pharma ya tiene la 00005 aplicada y las cuatro líneas de identificación;
+    // si no, error y no se toca ninguna empresa. Deja en listas las casillas de Pharma.
+    local procedure ComprobarOrigenMod322()
+    var
+        Formato: Record "AEAT Transference Format";
+        VATStatementLine: Record "VAT Statement Line";
+        NumLineas: Integer;
+        Indice: Integer;
+    begin
+        EmpresaActual := EmpresaOrigen;
+        NumLineas := LineaFormato(Formato, 2180);
+        if (NumLineas <> 1) or (Formato.Box <> '63') then
+            Error(OrigenSinCorregirErr, EmpresaOrigen, StrSubstNo(EstadoOrigenTxt, 2180, EstadoPosicion(Formato, NumLineas)));
+        NumLineas := LineaFormato(Formato, 1948);
+        if NumLineas <> 0 then
+            Error(OrigenSinCorregirErr, EmpresaOrigen, StrSubstNo(EstadoOrigenTxt, 1948, EstadoPosicion(Formato, NumLineas)));
+        NumLineas := LineaFormato(Formato, 945);
+        if (NumLineas <> 1) or (Formato.Value <> '02100') then
+            Error(OrigenSinCorregirErr, EmpresaOrigen, StrSubstNo(EstadoOrigenTxt, 945, EstadoPosicion(Formato, NumLineas)));
+
+        IniciarIdentificacion();
+        for Indice := 1 to ArrayLen(PosicionesIdentificacion) do begin
+            NumLineas := LineaFormato(Formato, PosicionesIdentificacion[Indice]);
+            if (NumLineas <> 1) or (Formato.Length <> LongitudesIdentificacion[Indice]) then
+                Error(OrigenIdentificacionErr, EmpresaOrigen,
+                    StrSubstNo(EstadoOrigenTxt, PosicionesIdentificacion[Indice], EstadoPosicion(Formato, NumLineas)));
+        end;
+
+        Clear(CasillasDeclaracionPharma);
+        Clear(CasillasPharma);
+        VATStatementLine.ChangeCompany(EmpresaOrigen);
+        VATStatementLine.SetRange("Statement Name", Mod322Txt);
+        VATStatementLine.SetFilter(Box, '<>%1', '');
+        if VATStatementLine.FindSet() then
+            repeat
+                AnadirCasilla(CasillasDeclaracionPharma, VATStatementLine.Box);
+                AnadirCasilla(CasillasPharma, VATStatementLine.Box);
+            until VATStatementLine.Next() = 0;
+        Formato.Reset();
+        Formato.ChangeCompany(EmpresaOrigen);
+        Formato.SetRange("VAT Statement Name", Mod322Txt);
+        Formato.SetFilter(Box, '<>%1', '');
+        if Formato.FindSet() then
+            repeat
+                AnadirCasilla(CasillasPharma, Formato.Box);
+            until Formato.Next() = 0;
+    end;
+
+    local procedure IniciarIdentificacion()
+    begin
+        PosicionesIdentificacion[1] := 342;
+        LongitudesIdentificacion[1] := 9;
+        PosicionesIdentificacion[2] := 351;
+        LongitudesIdentificacion[2] := 60;
+        PosicionesIdentificacion[3] := 447;
+        LongitudesIdentificacion[3] := 1;
+        PosicionesIdentificacion[4] := 448;
+        LongitudesIdentificacion[4] := 9;
+    end;
+
+    local procedure EsPosicionIdentificacion(Posicion: Integer; var Indice: Integer): Boolean
+    begin
+        for Indice := 1 to ArrayLen(PosicionesIdentificacion) do
+            if PosicionesIdentificacion[Indice] = Posicion then
+                exit(true);
+        exit(false);
+    end;
+
+    local procedure CopiarMod322AEmpresa(Nif: Text[20]): Text
+    var
+        Encontradas: Text;
+        NumEmpresas: Integer;
+    begin
+        NumEmpresas := EmpresasConNif(Nif, EmpresaActual, Encontradas);
+        if NumEmpresas <> 1 then begin
+            AnadirResultado('', StrSubstNo(ClaveNifTxt, Nif), '', Encontradas, '', EmpresaNoEncontradaTxt);
+            exit(StrSubstNo(EmpresaNoEncontradaMsg, Nif, NumEmpresas));
+        end;
+        NifActual := Nif;
+
+        // Primera pasada: solo cuenta lo que no coincide. Segunda: informa y, si no hay nada, graba.
+        InformarMod322 := false;
+        NumNoCoincide := 0;
+        ValidarDestinoMod322();
+
+        InformarMod322 := true;
+        EmpresaCoincide := NumNoCoincide = 0;
+        NumCambiadoMod322 := 0;
+        NumYaEstabaMod322 := 0;
+        NumNoCoincide := 0;
+        NumBorradas := 0;
+        NumInsertadas := 0;
+        NumRevisar := 0;
+        ValidarDestinoMod322();
+        AnotarRevisarMod322();
+        if EmpresaCoincide then
+            CopiarLineasFormatoMod322();
+
+        AnadirResultado('', EmpresaActual, TotalTxt, '',
+            StrSubstNo(TotalCopiaTxt, NumBorradas, NumInsertadas, NumRevisar, NumNoCoincide), TotalTxt);
+        exit(StrSubstNo(EmpresaCopiaMod322Msg, EmpresaActual, NumBorradas, NumInsertadas, NumRevisar, NumNoCoincide));
+    end;
+
+    local procedure ValidarDestinoMod322()
+    var
+        Indice: Integer;
+    begin
+        for Indice := 1 to ArrayLen(PosicionesIdentificacion) do
+            ComprobarIdentificacion(Indice);
+        ComprobarCasillasDeclaracion();
+        CambiarCasillaDeclaracion('152', '20');
+        CambiarCasillaDeclaracion('150', '18');
+    end;
+
+    // El valor de identificación del formato actual del destino es el que se queda en la copia; la razón
+    // social, en mayúsculas y sin acentos.
+    local procedure ComprobarIdentificacion(Indice: Integer)
+    var
+        Formato: Record "AEAT Transference Format";
+        Posicion: Integer;
+        NumLineas: Integer;
+        Esperado: Text;
+    begin
+        Posicion := PosicionesIdentificacion[Indice];
+        NumLineas := LineaFormato(Formato, Posicion);
+        if (NumLineas = 1) and (Formato.Length = LongitudesIdentificacion[Indice]) and (Formato.Value <> '') and
+           ((Posicion <> 342) or (NormalizarNif(Formato.Value) = NifActual))
+        then begin
+            ValoresIdentificacion[Indice] := Formato.Value;
+            if Posicion = 351 then
+                ValoresIdentificacion[Indice] := CopyStr(QuitarAcentos(Formato.Value), 1, MaxStrLen(ValoresIdentificacion[Indice]));
+            if InformarMod322 then
+                AnadirResultado(TablaFormatoTxt, ClaveFormato(Formato), Formato.FieldCaption(Value), Formato.Value, ValoresIdentificacion[Indice], SeMantieneTxt);
+            exit;
+        end;
+
+        Esperado := StrSubstNo(IdentificacionEsperadaTxt, LongitudesIdentificacion[Indice]);
+        if Posicion = 342 then
+            Esperado := StrSubstNo(DosValoresTxt, Esperado, NifActual);
+        AnotarNoCoincide(TablaFormatoTxt, ClavePosicion(Posicion), Formato.FieldCaption(Value), EstadoPosicion(Formato, NumLineas), Esperado);
+    end;
+
+    local procedure QuitarAcentos(Texto: Text): Text
+    begin
+        exit(ConvertStr(UpperCase(Texto), 'ÁÉÍÓÚÜ', 'AEIOUU'));
+    end;
+
+    // Toda casilla de la declaración del destino (con el cambio D1/D2 hecho) tiene que estar en la
+    // declaración o en el formato de Pharma: si no, su importe no saldría en el fichero.
+    local procedure ComprobarCasillasDeclaracion()
+    var
+        VATStatementLine: Record "VAT Statement Line";
+        Faltan: List of [Code[5]];
+        Casilla: Code[5];
+    begin
+        Clear(CasillasDestino);
+        VATStatementLine.ChangeCompany(EmpresaActual);
+        VATStatementLine.SetRange("Statement Name", Mod322Txt);
+        VATStatementLine.SetFilter(Box, '<>%1', '');
+        if VATStatementLine.FindSet() then
+            repeat
+                Casilla := CasillaTrasCambio(VATStatementLine.Box);
+                AnadirCasilla(CasillasDestino, Casilla);
+                if not CasillasPharma.Contains(Casilla) then
+                    AnadirCasilla(Faltan, Casilla);
+            until VATStatementLine.Next() = 0;
+
+        if Faltan.Count() > 0 then
+            AnotarNoCoincide(TablaDeclaracionTxt, StrSubstNo(ClaveCasillasPharmaTxt, EmpresaActual), VATStatementLine.FieldCaption(Box),
+                UnirCasillas(Faltan), '');
+    end;
+
+    local procedure CasillaTrasCambio(Box: Code[5]): Code[5]
+    begin
+        case Box of
+            '152':
+                exit('20');
+            '150':
+                exit('18');
+        end;
+        exit(Box);
+    end;
+
+    local procedure AnadirCasilla(var Casillas: List of [Code[5]]; Casilla: Code[5])
+    begin
+        if not Casillas.Contains(Casilla) then
+            Casillas.Add(Casilla);
+    end;
+
+    local procedure UnirCasillas(Casillas: List of [Code[5]]) Texto: Text
+    var
+        Casilla: Code[5];
+    begin
+        foreach Casilla in Casillas do begin
+            if Texto <> '' then
+                Texto += ', ';
+            Texto += Casilla;
+        end;
+    end;
+
+    // Informativo, no bloquea: líneas de texto de Pharma con valor que en el formato antiguo del destino,
+    // en la misma posición y longitud, tienen otro valor (por si es un dato propio de la empresa).
+    local procedure AnotarRevisarMod322()
+    var
+        FormatoOrigen: Record "AEAT Transference Format";
+        Formato: Record "AEAT Transference Format";
+        Indice: Integer;
+    begin
+        FormatoOrigen.ChangeCompany(EmpresaOrigen);
+        FormatoOrigen.SetRange("VAT Statement Name", Mod322Txt);
+        FormatoOrigen.SetFilter(Type, '<>%1', FormatoOrigen.Type::Numerical);
+        FormatoOrigen.SetFilter(Value, '<>%1', '');
+        if FormatoOrigen.FindSet() then
+            repeat
+                if not EsPosicionIdentificacion(FormatoOrigen.Position, Indice) then
+                    if LineaFormato(Formato, FormatoOrigen.Position) = 1 then
+                        if (Formato.Length = FormatoOrigen.Length) and (Formato.Value <> FormatoOrigen.Value) then begin
+                            NumRevisar += 1;
+                            AnadirResultado(TablaFormatoTxt, ClaveFormato(Formato), Formato.FieldCaption(Value), Formato.Value, FormatoOrigen.Value, RevisarTxt);
+                        end;
+            until FormatoOrigen.Next() = 0;
+    end;
+
+    // Borra el formato MOD322 del destino (cada línea queda en el Excel como copia de seguridad) e
+    // inserta las de Pharma con el mismo Nº.
+    local procedure CopiarLineasFormatoMod322()
+    var
+        Formato: Record "AEAT Transference Format";
+        FormatoOrigen: Record "AEAT Transference Format";
+    begin
+        Formato.ChangeCompany(EmpresaActual);
+        Formato.SetRange("VAT Statement Name", Mod322Txt);
+        if Formato.FindSet() then
+            repeat
+                NumBorradas += 1;
+                AnadirResultado(TablaFormatoTxt, ClaveFormato(Formato), DescribirLineaFormato(Formato), Formato.Value, '', BorradaTxt);
+            until Formato.Next() = 0;
+        if not SimularActivo then
+            Formato.DeleteAll(false);
+
+        FormatoOrigen.ChangeCompany(EmpresaOrigen);
+        FormatoOrigen.SetRange("VAT Statement Name", Mod322Txt);
+        if FormatoOrigen.FindSet() then
+            repeat
+                Formato.Init();
+                Formato.TransferFields(FormatoOrigen);
+                Formato.Value := ValorEnDestino(FormatoOrigen);
+                NumInsertadas += 1;
+                AnadirResultado(TablaFormatoTxt, ClaveFormato(Formato), DescribirLineaFormato(Formato), '', Formato.Value, InsertadaTxt);
+                if not SimularActivo then
+                    Formato.Insert(false);
+            until FormatoOrigen.Next() = 0;
+    end;
+
+    // Identificación: la del destino. Numéricas con casilla de la declaración: vacías, las recalcula el
+    // Report 50110 y así no viaja ningún importe de Pharma. Numéricas con casilla que no está en ninguna
+    // declaración (tipos como el 02100 de la 945): el report no las toca y se copian tal cual.
+    local procedure ValorEnDestino(FormatoOrigen: Record "AEAT Transference Format"): Text[250]
+    var
+        Indice: Integer;
+    begin
+        if EsPosicionIdentificacion(FormatoOrigen.Position, Indice) then
+            exit(ValoresIdentificacion[Indice]);
+        if (FormatoOrigen.Type <> FormatoOrigen.Type::Numerical) or (FormatoOrigen.Box = '') then
+            exit(FormatoOrigen.Value);
+        if CasillasDeclaracionPharma.Contains(FormatoOrigen.Box) or CasillasDestino.Contains(FormatoOrigen.Box) then
+            exit('');
+        if DelChr(FormatoOrigen.Value, '=', '0 ') <> '' then begin
+            NumRevisar += 1;
+            AnadirResultado(TablaFormatoTxt, ClaveFormato(FormatoOrigen), FormatoOrigen.FieldCaption(Value), '', FormatoOrigen.Value, RevisarCasillaTxt);
+        end;
+        exit(FormatoOrigen.Value);
+    end;
+
+    local procedure DescribirLineaFormato(Formato: Record "AEAT Transference Format"): Text
+    begin
+        exit(StrSubstNo(DescripcionLineaTxt, Formato.Length, Formato.Type, Formato.Subtype, Formato.Box));
+    end;
+
     local procedure RepararRecursoColaFila(Fila: Integer)
     var
         OT: Record "Enteco Production Order";
@@ -771,12 +1106,13 @@ codeunit 50089 "GRX Main"
 
     local procedure AnadirResultado(Tabla: Text; Clave: Text; Campo: Text; ValorAnterior: Text; ValorNuevo: Text; Resultado: Text)
     begin
+        // La celda del Excel Buffer admite 250 caracteres; la clave lleva la descripción de la línea.
         TempResultado.NewRow();
         TempResultado.AddColumn(Tabla, false, '', false, false, false, '', TempResultado."Cell Type"::Text);
-        TempResultado.AddColumn(Clave, false, '', false, false, false, '', TempResultado."Cell Type"::Text);
+        TempResultado.AddColumn(CopyStr(Clave, 1, MaxStrLen(TempResultado."Cell Value as Text")), false, '', false, false, false, '', TempResultado."Cell Type"::Text);
         TempResultado.AddColumn(Campo, false, '', false, false, false, '', TempResultado."Cell Type"::Text);
-        TempResultado.AddColumn(ValorAnterior, false, '', false, false, false, '', TempResultado."Cell Type"::Text);
-        TempResultado.AddColumn(ValorNuevo, false, '', false, false, false, '', TempResultado."Cell Type"::Text);
+        TempResultado.AddColumn(CopyStr(ValorAnterior, 1, MaxStrLen(TempResultado."Cell Value as Text")), false, '', false, false, false, '', TempResultado."Cell Type"::Text);
+        TempResultado.AddColumn(CopyStr(ValorNuevo, 1, MaxStrLen(TempResultado."Cell Value as Text")), false, '', false, false, false, '', TempResultado."Cell Type"::Text);
         TempResultado.AddColumn(Resultado, false, '', false, false, false, '', TempResultado."Cell Type"::Text);
 
         case Resultado of
@@ -823,6 +1159,17 @@ codeunit 50089 "GRX Main"
         NumCambiadoMod322: Integer;
         NumYaEstabaMod322: Integer;
         NumNoCoincide: Integer;
+        EmpresaOrigen: Text[30];
+        NifActual: Text[20];
+        PosicionesIdentificacion: array[4] of Integer;
+        LongitudesIdentificacion: array[4] of Integer;
+        ValoresIdentificacion: array[4] of Text[250];
+        CasillasDeclaracionPharma: List of [Code[5]];
+        CasillasPharma: List of [Code[5]];
+        CasillasDestino: List of [Code[5]];
+        NumBorradas: Integer;
+        NumInsertadas: Integer;
+        NumRevisar: Integer;
         EmpresaDesconocidaErr: Label 'Empresa %1 desconocida.', Comment = '%1 = nombre de la empresa';
         FilasTotalesMsg: Label '%1. Filas tratadas: %2. Cambiado: %3. Ya estaba: %4. No existe en BC: %5. Error: %6.', Comment = '%1 = Simulación o Ejecución, %2 = filas tratadas, %3 = cambiados, %4 = ya estaban, %5 = no existen en BC, %6 = errores';
         TotalesMsg: Label '%1. Cambiado: %2. Error: %3.', Comment = '%1 = Simulación o Ejecución, %2 = cambiados, %3 = errores';
@@ -861,6 +1208,28 @@ codeunit 50089 "GRX Main"
         ClaveFormatoTxt: Label '%1 · posición %2 (Nº %3) %4', Comment = '%1 = empresa, %2 = posición, %3 = Nº de línea, %4 = descripción';
         ClavePosicionTxt: Label '%1 · posición %2', Comment = '%1 = empresa, %2 = posición';
         ClaveCasillasTxt: Label '%1 · casilla %2 → %3', Comment = '%1 = empresa, %2 = casilla de origen, %3 = casilla de destino';
+        OrigenEmpresaErr: Label 'Tiene que haber exactamente una empresa con el NIF %1 (Pharma, origen de la copia); hay %2: %3. No se ha tocado nada.', Comment = '%1 = NIF, %2 = número de empresas, %3 = empresas';
+        OrigenSinCorregirErr: Label 'El formato MOD322 de %1 no tiene aplicada la ficha 00005 (%2). No se ha tocado nada.', Comment = '%1 = empresa, %2 = estado de la posición';
+        OrigenIdentificacionErr: Label 'El formato MOD322 de %1 no tiene la línea de identificación esperada (%2). No se ha tocado nada.', Comment = '%1 = empresa, %2 = estado de la posición';
+        EstadoOrigenTxt: Label 'posición %1: %2', Comment = '%1 = posición, %2 = estado de la posición';
+        CopiaMod322TotalesMsg: Label '%1. Origen: %2.\%3\%4\%5', Comment = '%1 = Simulación o Ejecución, %2 = empresa de origen, %3 = resumen de Manviel, %4 = resumen de Extremadura, %5 = resumen de Gestión';
+        EmpresaCopiaMod322Msg: Label '%1: borradas %2, insertadas %3, revisar %4, no coincide %5.', Comment = '%1 = empresa, %2 = líneas borradas, %3 = líneas insertadas, %4 = filas a revisar, %5 = no coinciden';
+        EmpresaNoEncontradaMsg: Label 'NIF %1: %2 empresas con ese NIF, sin tocar.', Comment = '%1 = NIF, %2 = número de empresas';
+        EmpresaNoEncontradaTxt: Label 'Empresa no encontrada';
+        ClaveNifTxt: Label 'NIF %1', Comment = '%1 = NIF';
+        ClaveCasillasPharmaTxt: Label '%1 · casillas que no están en Pharma', Comment = '%1 = empresa';
+        IdentificacionEsperadaTxt: Label 'Una línea de long. %1 con valor', Comment = '%1 = longitud';
+        DescripcionLineaTxt: Label 'Long. %1, tipo %2, subtipo %3, casilla %4', Comment = '%1 = longitud, %2 = tipo, %3 = subtipo, %4 = casilla';
+        SeMantieneTxt: Label 'Se mantiene';
+        InsertadaTxt: Label 'Insertada';
+        RevisarTxt: Label 'Revisar';
+        RevisarCasillaTxt: Label 'Revisar: casilla sin fila en la declaración, se copia el valor de Pharma';
+        TotalTxt: Label 'Total';
+        TotalCopiaTxt: Label 'Borradas %1, insertadas %2, revisar %3, no coincide %4', Comment = '%1 = líneas borradas, %2 = líneas insertadas, %3 = filas a revisar, %4 = no coinciden';
+        NifPharmaTxt: Label 'B28296812', Locked = true;
+        NifManvielTxt: Label 'B28630796', Locked = true;
+        NifExtremaduraTxt: Label 'B10382638', Locked = true;
+        NifGestionTxt: Label 'B82770652', Locked = true;
         DosValoresTxt: Label '%1 / %2', Locked = true;
         Mod322Txt: Label 'MOD322', Locked = true;
         TablaDeclaracionTxt: Label '256 VAT Statement Line', Locked = true;
