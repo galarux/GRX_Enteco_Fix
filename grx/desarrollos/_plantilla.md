@@ -10,8 +10,6 @@ proyecto: ENTECO Nombre de la nota del proyecto en 030 PROYECTOS de la bóveda
 commits: []
 ---
 
-# Título
-
 ## Objetivo
 Qué se quiere conseguir, en lenguaje de negocio, en dos o tres frases. Quién lo usa y para qué.
 
