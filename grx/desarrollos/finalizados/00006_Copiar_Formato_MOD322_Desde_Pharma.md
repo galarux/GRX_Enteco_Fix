@@ -3,11 +3,12 @@ id: 00006
 titulo: "Modelo 322: copiar el «Formato transferencia» MOD322 de Pharma (ya corregido, diseño de 2026) a Manviel, Extremadura y Gestión"
 repo: GRX_Enteco_Fix
 rama: master
-estado: desplegado
+estado: finalizado
 creado: 2026-10-29
-modificado: 2026-10-29
+modificado: 2026-11-03
 proyecto: ENTECO Contabilidad Mejoras
 commits:
+  - "2026-10-29 282cb64 [00006] Ficha: desplegado, ejecutado en producción"
   - "2026-10-29 c408997 [00006] Ficha: revisión de la simulación en producción"
   - "2026-10-29 55c5b1b [00006] Ficha: en pruebas, desviaciones, resultado y commits al día"
   - "2026-10-29 45dcdf2 [00006] CopiarFormatoMod322DesdePharma en la Codeunit 50089; Report 50025 lo llama; versión 26.10.29.2; fichas 00006 (nueva) y 00005 (Historial)"
@@ -118,3 +119,4 @@ Qué NO se toca:
 - 2026-10-29 Claude Code: `CopiarFormatoMod322DesdePharma` en la `Codeunit 50089`, `Report 50025` apuntado a él, versión 26.10.29.2, compilado con CodeCop sin warnings nuevos; `.app` en la raíz. Desviación: las numéricas con casilla que no está en ninguna declaración (la 945 de tipo 21 %, Box 19) se copian con su valor en vez de vaciarse. Estado `en pruebas`: falta publicar, simular y ejecutar en producción.
 - 2026-10-29 Claude Code: revisado el Excel de la simulación en producción: 0 «No coincide» en las tres empresas, todas las casillas con importe tienen destino; el «Revisar» de la 460 es un falso aviso (las líneas se movieron entre diseños). Por `Nº` cambian datos de diciembre (Nº 107, 109 y el epígrafe IAE Nº 152 de Gestión, `8497` → `474`), que no salen en septiembre. Se puede ejecutar.
 - 2026-10-29 Claude Code: Daniel lo ejecuta en producción desde Pharma; el Excel de ejecución es idéntico a la simulación (254 borradas, 247 insertadas y D1/D2 en cada empresa, 0 «No coincide»). Estado `desplegado`: faltan las pruebas de aceptación 3 a 5 (ficheros de Paula y validación en la sede).
+- 2026-11-03 Claude Code: finalizada por decisión de Daniel; destilada a la bóveda (ENTECO Contabilidad y proyectos Mejoras).

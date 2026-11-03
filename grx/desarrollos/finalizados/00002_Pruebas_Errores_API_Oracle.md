@@ -3,9 +3,9 @@ id: 00002
 titulo: "Pruebas en PRE de la ficha 00004 de MigracionBC (errores del API de Oracle): escenarios automáticos con la configuración cambiada y restaurada"
 repo: GRX_Enteco_Fix
 rama: master
-estado: propuesta
+estado: cancelado
 creado: 2026-10-08
-modificado: 2026-10-08
+modificado: 2026-11-03
 decision: ENTECO DESARROLLO Errores API Oracle
 commits: []
 ---
@@ -88,3 +88,4 @@ Lo que este proceso no prueba y Daniel sigue mirando a mano (pruebas 1 y 7 de la
 
 ## Historial
 - 2026-10-08 Cowork: ficha creada.
+- 2026-11-03 Claude Code: cancelada por decisión de Daniel: no hizo falta automatizar las pruebas en PRE del API de Oracle; sin código ni resultado en el repo.

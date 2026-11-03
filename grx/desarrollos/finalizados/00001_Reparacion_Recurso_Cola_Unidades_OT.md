@@ -3,14 +3,15 @@ id: 00001
 titulo: "Reparación de datos tras la ficha 00002 de MigracionBC: recurso finalizado, estado de cola y unidades de los componentes"
 repo: GRX_Enteco_Fix
 rama: master
-estado: en pruebas
+estado: finalizado
 creado: 2026-10-02
-modificado: 2026-10-14
+modificado: 2026-11-03
 proyecto: ENTECO Planificación Mejoras
 commits:
-  - "2026-10-02 7681e9f [00001] Reports 59901 y 59902: recurso finalizado, estado de cola y unidad de componentes"
-  - "2026-10-02 7a2c62b [00001] Ficha al día tras el desarrollo"
+  - "2026-10-02 641c97e [00001] Ficha: commits al día"
   - "2026-10-02 42f68bb [00001] Lógica de reparación a la Codeunit 50089; fuera los reports 59901 y 59902"
+  - "2026-10-02 7a2c62b [00001] Ficha al día tras el desarrollo"
+  - "2026-10-02 7681e9f [00001] Reports 59901 y 59902: recurso finalizado, estado de cola y unidad de componentes"
 ---
 
 # Reparación de datos tras la ficha 00002 de MigracionBC: recurso finalizado, estado de cola y unidades de los componentes
@@ -123,3 +124,4 @@ En PRE (`BC25_DESARROLLO`), con la versión de `Enteco` que lleva la ficha 00002
 - 2026-10-02 Claude Code: lógica de los reports 59901 y 59902 pasada a `RepararRecursoColaOT` y `RepararUnidadComponentes` de la `Codeunit 50089`; reports borrados; `Report 50025` básico con Simular y llamada a `RepararRecursoColaOT`. Compilado con CodeCop; pendiente probar en PRE.
 - 2026-10-02 Cowork: la ficha 00002 de MigracionBC pasa a `finalizados/`; ruta corregida en Contexto.
 - 2026-10-14 Cowork: la cabecera pasa de `decision` a `proyecto` (ENTECO Planificación Mejoras) al fundir la nota de decisiones en el proyecto; sin cambios en el contenido. La segunda carga de recursos (lista de octubre) va en la ficha 00003, que reutiliza `RepararRecursoColaOT`.
+- 2026-11-03 Claude Code: finalizada por decisión de Daniel; destilada a la bóveda (ENTECO Contabilidad y proyectos Mejoras).
