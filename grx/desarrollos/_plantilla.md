@@ -4,6 +4,7 @@ titulo: Título con acentos y espacios
 repo: GRX_Enteco_Fix
 rama: master
 estado: propuesta
+modo: conversada   # conversada | atómica
 creado: AAAA-MM-DD
 modificado: AAAA-MM-DD
 proyecto: ENTECO Nombre de la nota del proyecto en 030 PROYECTOS de la bóveda

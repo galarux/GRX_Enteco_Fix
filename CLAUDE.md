@@ -8,7 +8,7 @@
 - **No se crean objetos nuevos**: es OnPrem y la licencia tiene la numeración limitada. Todo va en dos objetos: la `Codeunit 50089 "GRX Main"` (`src/GRX_Main.Codeunit.al`), con un procedimiento público por proceso, y el `Report 50025 "GRX Fix"` (`src/GRX_Fix.Report.al`), que es básico: comprueba el usuario, ofrece Simular y en `OnPreReport` llama al procedimiento del proceso en curso. Los procedimientos que ya no llama nadie se quedan en la codeunit y se borran de vez en cuando, siempre que ya estén en git.
 - Empresas: Enteco_Pharma (código Oracle `10`) y Enteco_Manviel (`05`). PRE `BC25_DESARROLLO`, producción `BC252`.
 - Se compila con `tools/compile.ps1`. Sin traducciones.
-- `grx/desarrollos/` guarda las fichas de desarrollo (las escribe Cowork; plantilla en `_plantilla.md`) y lo que acompaña a cada ficha (p. ej. la consulta a Oracle de la 00001). `grx/utils/` es la carpeta de paso para Excel y ficheros que deja Daniel, ignorada por git.
+- `grx/desarrollos/` guarda las fichas de desarrollo (las escribe la sesión de análisis; plantilla en `_plantilla.md`) y lo que acompaña a cada ficha (p. ej. la consulta a Oracle de la 00001). `grx/utils/` es la carpeta de paso para Excel y ficheros que deja Daniel, ignorada por git.
 
 ## Cómo se trabaja aquí
 
@@ -17,5 +17,5 @@
 - Escribe directamente y sin disparar triggers (`Modify(false)`), para no resincronizar con Oracle, salvo que la ficha diga otra cosa.
 - Compila con CodeCop y sin warnings nuevos.
 - Commits con la etiqueta `[NNNNN]` de la ficha. No commitees `.app`, `.old_app/`, `.vscode/launch.json` ni `grx/utils/`.
-- Al terminar cada sesión deja la ficha al día: línea en `## Historial` (`AAAA-MM-DD Claude Code: …`), `modificado`, `estado` (`propuesta` → `en desarrollo` → `en pruebas` → `desplegado` → `finalizado`, o `cancelado`; no hay otros. Tú lo llevas hasta `desplegado`: `en pruebas` cuando el código está hecho y compilado pero falta probarlo; `finalizado`/`cancelado` los pone Daniel) y `commits` (`git log --grep="\[NNNNN\]" --date=short --format="%ad %h %s"`). Tus secciones son Desviaciones del plan, Resultado e Historial; el resto es de Cowork.
-- No muevas fichas, no cambies números ni crees fichas nuevas. Sin wikilinks ni secretos en las fichas.
+- Al terminar cada sesión deja la ficha al día: línea en `## Historial` (`AAAA-MM-DD Claude Code: …`), `modificado`, `estado` (`propuesta` → `en desarrollo` → `en pruebas` → `desplegado` → `finalizado`, o `cancelado`; no hay otros. Tú lo llevas hasta `desplegado`: `en pruebas` cuando el código está hecho y compilado pero falta probarlo; `finalizado`/`cancelado` los pone Daniel) y `commits` (`git log --grep="\[NNNNN\]" --date=short --format="%ad %h %s"`). Las secciones las escribe quien trabaja la ficha.
+- Las fichas se crean, se mueven a `finalizados/` y se finalizan con la skill `creacion-grx-ficha-desarrollo`; su número no cambia. Lo que no esté en la ficha se pregunta a Daniel y se apunta en ella. Sin wikilinks ni secretos en las fichas.
