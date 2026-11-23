@@ -8,7 +8,8 @@ modo: conversada
 creado: 2026-11-04
 modificado: 2026-11-23
 proyecto: ENTECO Tareas sin proyecto
-commits: []
+commits:
+  - "2026-11-23 b7cb0f0 [00007] Formato MOD353 de Gestión al diseño DR353e26v12 de 2026 (CorregirFormatoMod353Gestion)"
 ---
 
 ## Objetivo
