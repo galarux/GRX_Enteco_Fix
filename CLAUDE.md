@@ -8,6 +8,7 @@
 - **No se crean objetos nuevos**: es OnPrem y la licencia tiene la numeración limitada. Todo va en dos objetos: la `Codeunit 50089 "GRX Main"` (`src/GRX_Main.Codeunit.al`), con un procedimiento público por proceso, y el `Report 50025 "GRX Fix"` (`src/GRX_Fix.Report.al`), que es básico: comprueba el usuario, ofrece Simular y en `OnPreReport` llama al procedimiento del proceso en curso. Los procedimientos que ya no llama nadie se quedan en la codeunit y se borran de vez en cuando, siempre que ya estén en git.
 - Empresas: Enteco_Pharma (código Oracle `10`) y Enteco_Manviel (`05`). PRE `BC25_DESARROLLO`, producción `BC252`.
 - Se compila con `tools/compile.ps1`. Sin traducciones.
+- **Publicar** en cualquier entorno, siempre con la skill `accion-publicar-extension-bc` (su `publicar.ps1` lee `tools/publicacion.json`); F5 queda para depurar. Producción solo desde `master`. Si también cambia Enteco, primero Enteco: el script se para si el entorno no tiene la versión de Enteco que pide `app.json`.
 - `grx/desarrollos/` guarda las fichas de desarrollo (las escribe la sesión de análisis; plantilla en `_plantilla.md`) y lo que acompaña a cada ficha (p. ej. la consulta a Oracle de la 00001). `grx/utils/` es la carpeta de paso para Excel y ficheros que deja Daniel, ignorada por git.
 
 ## Cómo se trabaja aquí

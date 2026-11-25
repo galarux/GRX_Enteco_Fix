@@ -1,0 +1,15 @@
+{
+  "tipo": "OnPrem",
+  "app": ".",
+  "al": "17.",
+  "entornos": [
+    { "nombre": "BC25_INCIDENCIAS", "etapa": "pre", "servidor": "192.168.106.56", "instancia": "BC25_INCIDENCIAS", "puertoDev": 30004, "canal": "dev" },
+    { "nombre": "BC25_TEST", "etapa": "pre", "servidor": "192.168.106.56", "instancia": "BC25_TEST", "puertoDev": 25004, "canal": "dev" },
+    { "nombre": "BC25_DESARROLLO", "etapa": "pre", "servidor": "192.168.106.56", "instancia": "BC25_DESARROLLO", "puertoDev": 26004, "canal": "dev" },
+    { "nombre": "BC252", "etapa": "pro", "servidor": "192.168.10.11", "instancia": "BC252", "puertoDev": 7049, "canal": "admin" }
+  ],
+  "notas": [
+    "Produccion solo desde master. Tras publicar: tag vAA.M.D.N en el commit publicado y ficha a desplegado.",
+    "Depende de Enteco (repo MigracionBC): si cambian las dos, primero Enteco. El script comprueba que el entorno tenga la version de Enteco que pide app.json."
+  ]
+}
