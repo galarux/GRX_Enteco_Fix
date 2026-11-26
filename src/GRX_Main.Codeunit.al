@@ -1084,6 +1084,303 @@ codeunit 50089 "GRX Main"
         exit('');
     end;
 
+    // Ficha 00007. Pone el «Formato transferencia» MOD353 de Gestión (diseño antiguo, 149 líneas) en el
+    // diseño DR353e26v12 de 2026, conservando los Nº de línea porque el Report 50110 y Información de
+    // empresa apuntan a ellos: mueve las líneas de sitio (las de entidades +1 por el campo de la
+    // posición 121 de la página 01, que es la línea 144 que ya existía al final), recoloca el bloque
+    // de liquidación, pasa el IBAN y el SWIFT a la página 02 y añade lo que falta (la línea del pago a
+    // cuenta de gasolinas y la cabecera y el cierre de la página 02). Todo o nada; empresa por NIF.
+    procedure CorregirFormatoMod353Gestion(Simular: Boolean)
+    var
+        Formato: Record "AEAT Transference Format";
+        Encontradas: Text;
+        NumEmpresas: Integer;
+        NumMover: Integer;
+        NumInsertar: Integer;
+        NumYaEsta: Integer;
+        NumNoCoinciden: Integer;
+        Mensaje: Text;
+    begin
+        NumEmpresas := EmpresasConNif(NifGestionTxt, EmpresaActual, Encontradas);
+        if NumEmpresas <> 1 then
+            Error(Mod353EmpresaErr, NifGestionTxt, NumEmpresas, Encontradas);
+
+        IniciarResultado(Simular);
+        Formato.ChangeCompany(EmpresaActual);
+        Formato.SetRange("VAT Statement Name", Mod353Txt);
+
+        // Primera pasada: valida contra el plan y no anota ni toca nada. Segunda: anota en el Excel y,
+        // si todo coincide y no es Simular, graba.
+        NumNoCoinciden := ValidarFormatoMod353(Formato, true, false, NumMover, NumInsertar, NumYaEsta);
+        ValidarFormatoMod353(Formato, false, NumNoCoinciden = 0, NumMover, NumInsertar, NumYaEsta);
+
+        AnadirResultado('', EmpresaActual, TotalTxt, '',
+            StrSubstNo(Mod353TotalTxt, NumMover, NumInsertar, NumYaEsta, NumNoCoinciden), TotalTxt);
+        if NumNoCoinciden = 0 then
+            Mensaje := StrSubstNo(Mod353ResumenMsg, ModoTxt(), EmpresaActual, NumMover, NumInsertar, NumYaEsta)
+        else
+            Mensaje := StrSubstNo(Mod353NoCoincideMsg, ModoTxt(), EmpresaActual, NumNoCoinciden);
+        ExportarResultado('GRX Fix MOD353');
+        Message(Mensaje);
+    end;
+
+    // Recorre el plan de líneas. Con SoloContar no anota ni graba; sin él anota cada línea en el Excel y,
+    // si Grabar y no es Simular, la graba. Devuelve cuántas líneas no coinciden con lo esperado; el
+    // diseño final tiene que quedar sin huecos ni solapes de la posición 1 a la 2446.
+    local procedure ValidarFormatoMod353(var Formato: Record "AEAT Transference Format"; SoloContar: Boolean; Grabar: Boolean; var NumMover: Integer; var NumInsertar: Integer; var NumYaEsta: Integer) NumNoCoinciden: Integer
+    var
+        PosicionesNuevas: Dictionary of [Integer, Integer];
+        Numero: Integer;
+        PosicionAnterior: Integer;
+        LongitudAnterior: Integer;
+        PosicionNueva: Integer;
+        LongitudNueva: Integer;
+        Siguiente: Integer;
+        Descripcion: Text[250];
+        Valor: Text[250];
+        Tipo: Option Alphanumerical,Numerical,Fix,Ask,Currency;
+    begin
+        NumMover := 0;
+        NumInsertar := 0;
+        NumYaEsta := 0;
+
+        // Líneas que hay en la empresa y que el plan no conoce.
+        if Formato.FindSet() then
+            repeat
+                if not PlanFormatoMod353(Formato."No.", PosicionAnterior, LongitudAnterior, PosicionNueva, LongitudNueva, Descripcion, Valor, Tipo) then begin
+                    NumNoCoinciden += 1;
+                    if not SoloContar then
+                        AnadirResultado(TablaFormatoTxt, StrSubstNo(ClaveNumTxt, EmpresaActual, Formato."No."), PosLongTxt,
+                            StrSubstNo(DosValoresTxt, Formato.Position, Formato.Length), '', NoCoincideTxt);
+                end;
+            until Formato.Next() = 0;
+
+        for Numero := 1 to 158 do
+            if PlanFormatoMod353(Numero, PosicionAnterior, LongitudAnterior, PosicionNueva, LongitudNueva, Descripcion, Valor, Tipo) then begin
+                PosicionesNuevas.Add(PosicionNueva, LongitudNueva);
+                if Formato.Get(Mod353Txt, Numero) then begin
+                    if (Formato.Position = PosicionNueva) and (Formato.Length = LongitudNueva) then begin
+                        NumYaEsta += 1;
+                        if not SoloContar then
+                            AnadirResultado(TablaFormatoTxt, StrSubstNo(ClaveNumTxt, EmpresaActual, Numero), PosLongTxt,
+                                StrSubstNo(DosValoresTxt, Formato.Position, Formato.Length), StrSubstNo(DosValoresTxt, PosicionNueva, LongitudNueva), YaEstabaTxt);
+                    end else
+                        if (Numero <= 150) and (Formato.Position = PosicionAnterior) and (Formato.Length = LongitudAnterior) then begin
+                            NumMover += 1;
+                            if not SoloContar then begin
+                                AnadirResultado(TablaFormatoTxt, StrSubstNo(ClaveNumTxt, EmpresaActual, Numero), PosLongTxt,
+                                    StrSubstNo(DosValoresTxt, Formato.Position, Formato.Length), StrSubstNo(DosValoresTxt, PosicionNueva, LongitudNueva), CambiadoTxt);
+                                if Grabar and not SimularActivo then begin
+                                    Formato.Position := PosicionNueva;
+                                    Formato.Length := LongitudNueva;
+                                    Formato.Modify(false);
+                                end;
+                            end;
+                        end else begin
+                            NumNoCoinciden += 1;
+                            if not SoloContar then
+                                AnadirResultado(TablaFormatoTxt, StrSubstNo(ClaveNumTxt, EmpresaActual, Numero), PosLongTxt,
+                                    StrSubstNo(DosValoresTxt, Formato.Position, Formato.Length), StrSubstNo(DosValoresTxt, PosicionNueva, LongitudNueva), NoCoincideTxt);
+                        end;
+                end else
+                    if Numero > 150 then begin
+                        NumInsertar += 1;
+                        if not SoloContar then begin
+                            AnadirResultado(TablaFormatoTxt, StrSubstNo(ClaveNumTxt, EmpresaActual, Numero), PosLongTxt, '',
+                                StrSubstNo(DosValoresTxt, PosicionNueva, LongitudNueva), InsertadaTxt);
+                            if Grabar and not SimularActivo then begin
+                                Formato.Init();
+                                Formato."VAT Statement Name" := Mod353Txt;
+                                Formato."No." := Numero;
+                                Formato.Position := PosicionNueva;
+                                Formato.Length := LongitudNueva;
+                                Formato.Type := Tipo;
+                                Formato.Description := Descripcion;
+                                Formato.Value := Valor;
+                                Formato.Insert(false);
+                            end;
+                        end;
+                    end else begin
+                        NumNoCoinciden += 1;
+                        if not SoloContar then
+                            AnadirResultado(TablaFormatoTxt, StrSubstNo(ClaveNumTxt, EmpresaActual, Numero), PosLongTxt, SinLineaTxt,
+                                StrSubstNo(DosValoresTxt, PosicionNueva, LongitudNueva), NoCoincideTxt);
+                    end;
+            end;
+
+        // Comprobación del diseño final: del 1 al 2446, cada línea empieza donde acaba la anterior.
+        Siguiente := 1;
+        while (Siguiente < 2447) and PosicionesNuevas.ContainsKey(Siguiente) do
+            Siguiente += PosicionesNuevas.Get(Siguiente);
+        if Siguiente <> 2447 then begin
+            NumNoCoinciden += 1;
+            if not SoloContar then
+                AnadirResultado(TablaFormatoTxt, StrSubstNo(ClavePosicionTxt, EmpresaActual, Siguiente), PosLongTxt, '', '', NoCoincideTxt);
+        end;
+    end;
+
+    // Plan de la ficha 00007 por Nº de línea: posición y longitud en el diseño antiguo y en el de 2026
+    // (DR353e26v12). Devuelve false si el Nº no está en el plan. Las líneas nuevas (151..158) llevan
+    // posición anterior 0 y dan descripción, valor y tipo. El Nº 14 no existe en el formato de Gestión.
+    local procedure PlanFormatoMod353(Numero: Integer; var PosAnt: Integer; var LonAnt: Integer; var PosNue: Integer; var LonNue: Integer; var Descripcion: Text[250]; var Valor: Text[250]; var Tipo: Option Alphanumerical,Numerical,Fix,Ask,Currency): Boolean
+    var
+        Bloque: Integer;
+        Resto: Integer;
+    begin
+        PosAnt := 0;
+        LonAnt := 0;
+        PosNue := 0;
+        LonNue := 0;
+        Descripcion := '';
+        Valor := '';
+        Tipo := Tipo::Alphanumerical;
+        case true of
+            (Numero >= 1) and (Numero <= 28) and (Numero <> 14):
+                begin
+                    if Numero > 14 then
+                        Numero -= 1;
+                    Evaluate(PosAnt, SelectStr(Numero, PosFijasMod353Txt));
+                    Evaluate(LonAnt, SelectStr(Numero, LonFijasMod353Txt));
+                    PosNue := PosAnt;
+                    LonNue := LonAnt;
+                end;
+            (Numero >= 29) and (Numero <= 133):
+                begin
+                    Bloque := (Numero - 29) div 5;
+                    Resto := (Numero - 29) mod 5;
+                    PosAnt := 449 + 47 * Bloque + DesplazamientoEntidad353(Resto);
+                    LonAnt := LongitudEntidad353(Resto);
+                    PosNue := PosAnt + 1;
+                    LonNue := LonAnt;
+                end;
+            Numero = 134:
+                PonerPlan353(PosAnt, LonAnt, PosNue, LonNue, 1436, 17, 1437, 17);
+            Numero = 135:
+                PonerPlan353(PosAnt, LonAnt, PosNue, LonNue, 1453, 17, 1454, 17);
+            Numero = 136:
+                PonerPlan353(PosAnt, LonAnt, PosNue, LonNue, 1470, 17, 1505, 17);
+            Numero = 137:
+                PonerPlan353(PosAnt, LonAnt, PosNue, LonNue, 1487, 17, 1522, 17);
+            Numero = 138:
+                PonerPlan353(PosAnt, LonAnt, PosNue, LonNue, 1504, 17, 1556, 17);
+            Numero = 139:
+                PonerPlan353(PosAnt, LonAnt, PosNue, LonNue, 1521, 1, 1573, 1);
+            Numero = 140:
+                PonerPlan353(PosAnt, LonAnt, PosNue, LonNue, 1522, 13, 1574, 13);
+            Numero = 141:
+                PonerPlan353(PosAnt, LonAnt, PosNue, LonNue, 1535, 1, 1587, 1);
+            Numero = 142:
+                PonerPlan353(PosAnt, LonAnt, PosNue, LonNue, 1536, 34, 2041, 34);
+            Numero = 143:
+                PonerPlan353(PosAnt, LonAnt, PosNue, LonNue, 1570, 11, 2075, 11);
+            Numero = 144:
+                PonerPlan353(PosAnt, LonAnt, PosNue, LonNue, 1581, 1, 449, 1);
+            Numero = 145:
+                PonerPlan353(PosAnt, LonAnt, PosNue, LonNue, 1582, 17, 1471, 17);
+            Numero = 146:
+                PonerPlan353(PosAnt, LonAnt, PosNue, LonNue, 1599, 17, 1488, 17);
+            Numero = 147:
+                PonerPlan353(PosAnt, LonAnt, PosNue, LonNue, 1616, 188, 1588, 416);
+            Numero = 148:
+                PonerPlan353(PosAnt, LonAnt, PosNue, LonNue, 1804, 13, 2004, 13);
+            Numero = 149:
+                PonerPlan353(PosAnt, LonAnt, PosNue, LonNue, 1817, 12, 2017, 12);
+            Numero = 150:
+                PonerPlan353(PosAnt, LonAnt, PosNue, LonNue, 1829, 18, 2429, 18);
+            Numero = 151:
+                begin
+                    PonerPlan353(PosAnt, LonAnt, PosNue, LonNue, 0, 0, 2029, 2);
+                    Descripcion := 'Inicio del identificador de modelo y página';
+                    Valor := '<T';
+                end;
+            Numero = 152:
+                begin
+                    PonerPlan353(PosAnt, LonAnt, PosNue, LonNue, 0, 0, 2031, 3);
+                    Descripcion := 'Modelo';
+                    Valor := '353';
+                    Tipo := Tipo::Numerical;
+                end;
+            Numero = 153:
+                begin
+                    PonerPlan353(PosAnt, LonAnt, PosNue, LonNue, 0, 0, 2034, 2);
+                    Descripcion := 'Página';
+                    Valor := '2';
+                    Tipo := Tipo::Numerical;
+                end;
+            Numero = 154:
+                begin
+                    PonerPlan353(PosAnt, LonAnt, PosNue, LonNue, 0, 0, 2036, 4);
+                    Descripcion := 'Fin de identificador de modelo';
+                    Valor := '000>';
+                end;
+            Numero = 155:
+                begin
+                    PonerPlan353(PosAnt, LonAnt, PosNue, LonNue, 0, 0, 2040, 1);
+                    Descripcion := 'Indicador de página complementaria';
+                end;
+            Numero = 156:
+                begin
+                    PonerPlan353(PosAnt, LonAnt, PosNue, LonNue, 0, 0, 2086, 331);
+                    Descripcion := 'Reservado para la Agencia Tributaria';
+                end;
+            Numero = 157:
+                begin
+                    PonerPlan353(PosAnt, LonAnt, PosNue, LonNue, 0, 0, 2417, 12);
+                    Descripcion := 'Identificador de fin de registro.';
+                    Valor := '</T35302000>';
+                end;
+            Numero = 158:
+                begin
+                    PonerPlan353(PosAnt, LonAnt, PosNue, LonNue, 0, 0, 1539, 17);
+                    Descripcion := 'Liquidación. Pago a cuenta de entregas de gasolinas, gasóleos y biocarburantes [04]';
+                    Tipo := Tipo::Numerical;
+                end;
+            else
+                exit(false);
+        end;
+        exit(true);
+    end;
+
+    local procedure PonerPlan353(var PosAnt: Integer; var LonAnt: Integer; var PosNue: Integer; var LonNue: Integer; PosicionAnterior: Integer; LongitudAnterior: Integer; PosicionNueva: Integer; LongitudNueva: Integer)
+    begin
+        PosAnt := PosicionAnterior;
+        LonAnt := LongitudAnterior;
+        PosNue := PosicionNueva;
+        LonNue := LongitudNueva;
+    end;
+
+    // Cada bloque de entidad son 5 líneas en 47 posiciones: NIF (9), importe (17), reservado (5),
+    // justificante (13) y reservado (3).
+    local procedure DesplazamientoEntidad353(Resto: Integer): Integer
+    begin
+        case Resto of
+            0:
+                exit(0);
+            1:
+                exit(9);
+            2:
+                exit(26);
+            3:
+                exit(31);
+        end;
+        exit(44);
+    end;
+
+    local procedure LongitudEntidad353(Resto: Integer): Integer
+    begin
+        case Resto of
+            0:
+                exit(9);
+            1:
+                exit(17);
+            2:
+                exit(5);
+            3:
+                exit(13);
+        end;
+        exit(3);
+    end;
+
     local procedure IniciarResultado(Simular: Boolean)
     begin
         SimularActivo := Simular;
@@ -1170,6 +1467,15 @@ codeunit 50089 "GRX Main"
         NumBorradas: Integer;
         NumInsertadas: Integer;
         NumRevisar: Integer;
+        Mod353Txt: Label 'MOD353', Locked = true;
+        PosFijasMod353Txt: Label '1,3,6,7,11,13,18,23,93,97,101,110,323,329,331,334,336,340,341,342,351,411,431,435,437,447,448', Locked = true;
+        LonFijasMod353Txt: Label '2,3,1,4,2,5,5,70,4,4,9,213,6,2,3,2,4,1,1,9,60,20,4,2,10,1,1', Locked = true;
+        PosLongTxt: Label 'Posición / longitud';
+        ClaveNumTxt: Label '%1 · Nº línea %2', Comment = '%1 = empresa, %2 = Nº de línea';
+        Mod353EmpresaErr: Label 'Tiene que haber exactamente una empresa con el NIF %1 (Gestión); hay %2: %3. No se ha tocado nada.', Comment = '%1 = NIF, %2 = número de empresas, %3 = empresas';
+        Mod353ResumenMsg: Label '%1. %2: movidas %3, insertadas %4, ya estaban %5.', Comment = '%1 = Simulación o Ejecución, %2 = empresa, %3 = líneas movidas, %4 = insertadas, %5 = ya estaban';
+        Mod353NoCoincideMsg: Label '%1. %2: no coincide con el diseño en %3 puntos, no se ha tocado nada. Mira el Excel.', Comment = '%1 = Simulación o Ejecución, %2 = empresa, %3 = número de puntos que no coinciden';
+        Mod353TotalTxt: Label 'Movidas %1, insertadas %2, ya estaban %3, no coincide %4', Comment = '%1 = movidas, %2 = insertadas, %3 = ya estaban, %4 = no coinciden';
         EmpresaDesconocidaErr: Label 'Empresa %1 desconocida.', Comment = '%1 = nombre de la empresa';
         FilasTotalesMsg: Label '%1. Filas tratadas: %2. Cambiado: %3. Ya estaba: %4. No existe en BC: %5. Error: %6.', Comment = '%1 = Simulación o Ejecución, %2 = filas tratadas, %3 = cambiados, %4 = ya estaban, %5 = no existen en BC, %6 = errores';
         TotalesMsg: Label '%1. Cambiado: %2. Error: %3.', Comment = '%1 = Simulación o Ejecución, %2 = cambiados, %3 = errores';
