@@ -6,10 +6,11 @@ rama: master
 estado: en pruebas
 modo: conversada
 creado: 2026-11-04
-modificado: 2026-11-23
+modificado: 2026-11-26
 proyecto: ENTECO Tareas sin proyecto
 commits:
   - "2026-11-23 b7cb0f0 [00007] Formato MOD353 de Gestión al diseño DR353e26v12 de 2026 (CorregirFormatoMod353Gestion)"
+  - "2026-11-26 11888d5 Versión 26.11.26.1: ficha 00007 (formato MOD353 de Gestión), a producción"
 ---
 
 ## Objetivo
@@ -89,3 +90,4 @@ Pendiente para la prueba: tras ejecutar, generar el 353 y comprobar con Paula qu
 - 2026-11-04 Claude Code: ficha creada, tras analizar `MOD353 (2).txt` contra `DR353e26v12.xlsx` y el `Report 50110` de MigracionBC. Pendiente de los datos de la Parte 0 (export del formato `MOD353` de Gestión y de Información de empresa) para cerrar el diseño; decisión abierta A (parchear) o B (reconstruir).
 - 2026-11-17 Claude Code: proyecto pasa a «ENTECO Tareas sin proyecto» (antes «ENTECO Contabilidad Mejoras»): una sola nota de tareas sin proyecto por entidad, decidido por Daniel.
 - 2026-11-23 Claude Code: Parte 0 leída en BC252; decisión A; `CorregirFormatoMod353Gestion` hecho y compilado, versión 26.11.23.1. Estado `en pruebas`, falta publicar y simular.
+- 2026-11-26 Claude Code: PR #1 fusionada en master; publicada la 26.11.26.1 en producción (BC252) con la skill accion-publicar-extension-bc, por el canal dev, después de Enteco 26.11.26.1 (antes 26.10.29.2); tag v26.11.26.1. Sigue `en pruebas`: faltan las pruebas 2 a 5 (Simular en producción, ejecutar, fichero de Paula y validación en la sede).
