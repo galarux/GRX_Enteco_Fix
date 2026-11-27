@@ -3,7 +3,7 @@ id: 00007
 titulo: "Modelo 353: poner el «Formato transferencia» MOD353 de Gestión en el diseño de 2026 (la sede rechaza el fichero con EMALREG «Tipo de registro desconocido»)"
 repo: GRX_Enteco_Fix
 rama: master
-estado: desplegado
+estado: finalizado
 modo: conversada
 creado: 2026-11-04
 modificado: 2026-11-27
@@ -11,6 +11,8 @@ proyecto: ENTECO Tareas sin proyecto
 commits:
   - "2026-11-23 b7cb0f0 [00007] Formato MOD353 de Gestión al diseño DR353e26v12 de 2026 (CorregirFormatoMod353Gestion)"
   - "2026-11-26 11888d5 Versión 26.11.26.1: ficha 00007 (formato MOD353 de Gestión), a producción"
+  - "2026-11-26 f36c502 [00007] Ficha: publicada la 26.11.26.1 en producción"
+  - "2026-11-27 f9b63c1 [00007] Ficha: ejecutado en producción, validado en la sede, desplegado"
 ---
 
 ## Objetivo
@@ -93,3 +95,4 @@ Pendiente para la prueba: tras ejecutar, generar el 353 y comprobar con Paula qu
 - 2026-11-26 Claude Code: PR #1 fusionada en master; publicada la 26.11.26.1 en producción (BC252) con la skill accion-publicar-extension-bc, por el canal dev, después de Enteco 26.11.26.1 (antes 26.10.29.2); tag v26.11.26.1. Sigue `en pruebas`: faltan las pruebas 2 a 5 (Simular en producción, ejecutar, fichero de Paula y validación en la sede).
 - 2026-11-27 Claude Code: Paula generó el fichero de septiembre (MOD353 (3).txt) y salió idéntico al antiguo (1.846, `</T35301000>` en la 1817): el proceso no se había ejecutado. Simulación en producción (Gestión): movidas 122, insertadas 8, ya estaban 27, sin «No coincide». Ejecutado sin Simular en producción (Gestión): mismo resultado. Releído el formato MOD353: 157 líneas, contiguo de la 1 a la 2446, Nº 149 en la 2017, Nº 150 en la 2429, Nº 144 en la 449. Siguen `en pruebas`: Paula tiene que generar de nuevo el 353 de septiembre y validarlo en la sede.
 - 2026-11-27 Claude Code: Paula generó de nuevo el 353 de septiembre con el formato corregido y la sede lo validó (confirmado por Daniel: «ya funciona»). Estado `desplegado`; `finalizado` lo pone Daniel.
+- 2026-11-27 Claude Code: finalizada por Daniel («commitea, destila, finaliza»). Destilado a «ENTECO Contabilidad» (formato `MOD353` de Gestión) y al proyecto «ENTECO Tareas sin proyecto»; movida a `finalizados/`. Sin manual: no cambia nada que vea el usuario.
